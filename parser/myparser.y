@@ -3,6 +3,8 @@
 #include <stdio.h>
 extern int yylineno;
 extern int errorCount;
+
+FILE *outfile;
 %}
 
 /* Bison declarations */

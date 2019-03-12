@@ -8,9 +8,10 @@ static SymbolEntry **HashTable;  // look up will return an address
 
 static int getHash(char* name) {
     int hashValue = 1;
+    int i;
 
-    for (int i=0; i < strlen(name); i++) {
-    hashValue = (hashValue * name[i]) % HASH_TABLE_SIZE;
+    for (i=0; i < strlen(name); i++) {
+        hashValue = (hashValue * name[i]) % HASH_TABLE_SIZE;
     }
 
     return hashValue;
@@ -19,8 +20,9 @@ static int getHash(char* name) {
 void initTable() {
     // array of address (pointer to symbol table entry)
     HashTable = (SymbolEntry **) malloc(sizeof(SymbolEntry*) * HASH_TABLE_SIZE);  
+    int i;
 
-    for (int i=0; i < HASH_TABLE_SIZE; i++) {
+    for (i=0; i < HASH_TABLE_SIZE; i++) {
         HashTable[i] = NULL;
     }
 }
@@ -75,8 +77,8 @@ void insertToTable(char* name, Type type, int index, int isArray) {
 
 void printTable() {
     printf("\n ----------- Symbol Table -----------\n");
-
-    for(int i=0; i < HASH_TABLE_SIZE; i++){
+    int i;
+    for(i=0; i < HASH_TABLE_SIZE; i++){
         // scalar
         if(HashTable[i] != NULL && HashTable[i] -> isArray == 0) {
             printf("Scalar: %s has type %s with offset %d\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->index); 
