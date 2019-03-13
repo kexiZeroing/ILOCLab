@@ -8,7 +8,7 @@ typedef enum opcode {
     AND, ANDI, OR, ORI, NOT, LOADI, LOAD, LOADAI, LOADAO, CLOAD, CLOADAI, CLOADAO, STORE, STOREAI, STOREAO, CSTORE, CSTOREAI, CSTOREAO, I2I, C2C, I2C, C2I, BR, CBR, CMP_LT, CMP_LE, CMP_EQ, CMP_NE, CMP_GT, CMP_GE, HALT, READ, CREAD, OUTPUT, COUTPUT, WRITE, CWRITE
 } Opcode;
 
-extern FILE* outfile;
+extern FILE* output;
 
 extern int getNextRegister();
 

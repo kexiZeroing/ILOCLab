@@ -4,7 +4,7 @@
 extern int yylineno;
 extern int errorCount;
 
-FILE *outfile;
+FILE *output;
 %}
 
 /* Bison declarations */
