@@ -11,6 +11,7 @@ typedef struct {
   int dimension;
   int dim[MAX_DIMENSION][2]; // first is low index, second is high index
   int space;
+  int isImme;
 } SymbolEntry;
 
 extern void initTable();

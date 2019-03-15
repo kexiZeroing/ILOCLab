@@ -98,7 +98,11 @@ Stmt      	: Reference '=' Expr ';' {
 						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
 					} else{
 						// int
-						emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+						if (node2 -> isImme) {
+							emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
+						}else {
+							emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+						}
 					}
 				}
 			| '{' Stmts '}'
@@ -166,14 +170,92 @@ RelExpr 	: RelExpr LT Expr
         	| Expr
 			| RelExpr '=' Expr { yyerror("Forgot an equal '=' in RelExprssion"); }
 			;
-Expr		: Expr '+' Term  
-			| Expr '-' Term  
+Expr		: Expr '+' Term {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+
+					// differentiate by immediate value or register
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum + node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						emit(NOLABEL, _ADDI, node2->regNum, node1->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _ADDI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _ADD, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+			| Expr '-' Term  {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+					
+					// 'a-1' use subI; '1-a' use sub (loadI first)
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum - node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> regNum = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, node->regNum, EMPTY);
+						emit(NOLABEL, _SUB, node->regNum, node2->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _SUBI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _SUB, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
 			| Term {
 					$$ = $1;
 				}
 			;
-Term		: Term '*' Factor 
-			| Term '/' Factor 
+Term		: Term '*' Factor {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+
+					// same as add
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum * node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						emit(NOLABEL, _MULTI, node2->regNum, node1->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _MULTI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _MULT, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+			| Term '/' Factor {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+
+					// same as sub
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum / node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> regNum = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, node->regNum, EMPTY);
+						emit(NOLABEL, _DIV, node->regNum, node2->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _DIVI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _DIV, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
 			| Factor {
 					$$ = $1;
 				}
@@ -183,10 +265,9 @@ Factor		: '(' Expr ')'
 					$$ = $1;
 				}
 	  		| NUMBER {
-				  	int tmpReg = getNextRegister();
-					emit(NOLABEL, _LOADI, $1, tmpReg, EMPTY);
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-					node -> regNum = tmpReg;
+					node -> isImme = 1;
+					node -> regNum = $1;   // pseudo node
 					$$ = node;
 				} 
 	  		| CHARCONST {

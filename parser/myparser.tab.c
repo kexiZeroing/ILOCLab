@@ -503,17 +503,17 @@ static const yytype_int8 yyrhs[] =
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
        0,    55,    55,    56,    57,    59,    60,    61,    62,    63,
       64,    66,    68,    69,    71,    72,    74,    83,    85,    86,
-      88,    90,    91,    93,   104,   105,   106,   107,   108,   109,
-     110,   120,   121,   122,   123,   125,   126,   127,   128,   129,
-     130,   132,   133,   134,   135,   136,   137,   138,   139,   140,
-     141,   142,   144,   145,   146,   147,   148,   149,   151,   152,
-     154,   155,   157,   158,   160,   161,   162,   163,   164,   165,
-     166,   167,   169,   170,   171,   175,   176,   177,   181,   182,
-     185,   192,   200,   208,   210,   211
+      88,    90,    91,    93,   108,   109,   110,   111,   112,   113,
+     114,   124,   125,   126,   127,   129,   130,   131,   132,   133,
+     134,   136,   137,   138,   139,   140,   141,   142,   143,   144,
+     145,   146,   148,   149,   150,   151,   152,   153,   155,   156,
+     158,   159,   161,   162,   164,   165,   166,   167,   168,   169,
+     170,   171,   173,   192,   214,   218,   237,   259,   263,   264,
+     267,   273,   281,   289,   291,   292
 };
 #endif
 
@@ -1640,13 +1640,17 @@ yyreduce:
 						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
 					} else{
 						// int
-						emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+						if (node2 -> isImme) {
+							emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
+						}else {
+							emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+						}
 					}
 				;}
     break;
 
   case 30:
-#line 110 "myparser.y"
+#line 114 "myparser.y"
     {
 					SymbolEntry *node = (yyvsp[(2) - (3)].entry);
 					if (node -> type == 0){
@@ -1660,146 +1664,243 @@ yyreduce:
     break;
 
   case 31:
-#line 120 "myparser.y"
+#line 124 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 32:
-#line 121 "myparser.y"
+#line 125 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 33:
-#line 122 "myparser.y"
+#line 126 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 34:
-#line 123 "myparser.y"
+#line 127 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 35:
-#line 125 "myparser.y"
+#line 129 "myparser.y"
     { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; ;}
     break;
 
   case 36:
-#line 126 "myparser.y"
+#line 130 "myparser.y"
     { yyerror("unexpected NAME. No such reserved word"); yyclearin; ;}
     break;
 
   case 37:
-#line 127 "myparser.y"
+#line 131 "myparser.y"
     { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ ;}
     break;
 
   case 38:
-#line 128 "myparser.y"
+#line 132 "myparser.y"
     { yyerror("Missing closing curly brace '}'"); ;}
     break;
 
   case 39:
-#line 129 "myparser.y"
+#line 133 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 40:
-#line 130 "myparser.y"
+#line 134 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 48:
-#line 139 "myparser.y"
+#line 143 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 49:
-#line 140 "myparser.y"
+#line 144 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 50:
-#line 141 "myparser.y"
+#line 145 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 51:
-#line 142 "myparser.y"
+#line 146 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 52:
-#line 144 "myparser.y"
+#line 148 "myparser.y"
     { yyerror("can not make an assignment to write"); yyclearin; ;}
     break;
 
   case 53:
-#line 145 "myparser.y"
+#line 149 "myparser.y"
     { yyerror("No such reserved word"); yyclearin; ;}
     break;
 
   case 54:
-#line 146 "myparser.y"
+#line 150 "myparser.y"
     { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ ;}
     break;
 
   case 55:
-#line 147 "myparser.y"
+#line 151 "myparser.y"
     { yyerror("Missing closing curly brace '}'"); ;}
     break;
 
   case 56:
-#line 148 "myparser.y"
+#line 152 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 57:
-#line 149 "myparser.y"
+#line 153 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 71:
-#line 167 "myparser.y"
+#line 171 "myparser.y"
     { yyerror("Forgot an equal '=' in RelExprssion"); ;}
     break;
 
-  case 74:
-#line 171 "myparser.y"
+  case 72:
+#line 173 "myparser.y"
     {
-					(yyval.entry) = (yyvsp[(1) - (1)].entry);
-				;}
-    break;
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
 
-  case 77:
-#line 177 "myparser.y"
-    {
-					(yyval.entry) = (yyvsp[(1) - (1)].entry);
-				;}
-    break;
-
-  case 79:
-#line 182 "myparser.y"
-    {
-					(yyval.entry) = (yyvsp[(1) - (1)].entry);
-				;}
-    break;
-
-  case 80:
-#line 185 "myparser.y"
-    {
-				  	int tmpReg = getNextRegister();
-					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].int_val), tmpReg, EMPTY);
+					// differentiate by immediate value or register
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum + node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						emit(NOLABEL, _ADDI, node2->regNum, node1->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _ADDI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _ADD, node1->regNum, node2->regNum, tmpReg);
+					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
 					(yyval.entry) = node;
 				;}
     break;
 
-  case 81:
+  case 73:
 #line 192 "myparser.y"
+    {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					
+					// 'a-1' use subI; '1-a' use sub (loadI first)
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum - node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> regNum = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, node->regNum, EMPTY);
+						emit(NOLABEL, _SUB, node->regNum, node2->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _SUBI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _SUB, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					(yyval.entry) = node;
+				;}
+    break;
+
+  case 74:
+#line 214 "myparser.y"
+    {
+					(yyval.entry) = (yyvsp[(1) - (1)].entry);
+				;}
+    break;
+
+  case 75:
+#line 218 "myparser.y"
+    {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+
+					// same as add
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum * node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						emit(NOLABEL, _MULTI, node2->regNum, node1->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _MULTI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _MULT, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					(yyval.entry) = node;
+				;}
+    break;
+
+  case 76:
+#line 237 "myparser.y"
+    {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+
+					// same as sub
+					if(node1 -> isImme && node2 -> isImme) {
+						emit(NOLABEL, _LOADI, node1 -> regNum / node2 -> regNum, tmpReg, EMPTY);
+					} else if(node1 -> isImme) {
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> regNum = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, node->regNum, EMPTY);
+						emit(NOLABEL, _DIV, node->regNum, node2->regNum, tmpReg);
+					} else if(node2 -> isImme) {
+						emit(NOLABEL, _DIVI, node1->regNum, node2->regNum, tmpReg);
+					} else {
+						emit(NOLABEL, _DIV, node1->regNum, node2->regNum, tmpReg);
+					}
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					(yyval.entry) = node;
+				;}
+    break;
+
+  case 77:
+#line 259 "myparser.y"
+    {
+					(yyval.entry) = (yyvsp[(1) - (1)].entry);
+				;}
+    break;
+
+  case 79:
+#line 264 "myparser.y"
+    {
+					(yyval.entry) = (yyvsp[(1) - (1)].entry);
+				;}
+    break;
+
+  case 80:
+#line 267 "myparser.y"
+    {
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> isImme = 1;
+					node -> regNum = (yyvsp[(1) - (1)].int_val);   // pseudo node
+					(yyval.entry) = node;
+				;}
+    break;
+
+  case 81:
+#line 273 "myparser.y"
     {
 				  	int tmpReg = getNextRegister();
 					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].char_val), tmpReg, EMPTY);
@@ -1810,7 +1911,7 @@ yyreduce:
     break;
 
   case 82:
-#line 200 "myparser.y"
+#line 281 "myparser.y"
     {
 					SymbolEntry * node = lookupTable((yyvsp[(1) - (1)].string));
 					if (node == NULL){
@@ -1823,7 +1924,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 1827 "myparser.tab.c"
+#line 1928 "myparser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2037,7 +2138,7 @@ yyreturn:
 }
 
 
-#line 214 "myparser.y"
+#line 295 "myparser.y"
                     
  /* C code */
 

@@ -1,5 +1,9 @@
-	 loadI 1 	=> r3 
-	 i2i r3 	=> r0 
-	 loadI 2 	=> r4 
-	 i2i r4 	=> r1 
-	 loadI 99 	=> r5 
+	 loadI 1 	=> r0 
+	 loadI 2 	=> r1 
+	 loadI 2 	=> r3 
+	 add r3, r0 	=> r4 
+	 add r4, r1 	=> r5 
+	 i2i r5 	=> r0 
+	 loadI 1 	=> r7 
+	 sub r7, r1 	=> r6 
+	 i2i r6 	=> r1 
