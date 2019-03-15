@@ -94,7 +94,8 @@ Stmt      	: Reference '=' Expr ';' {
 					SymbolEntry *node1 = $1;
 					SymbolEntry *node2 = $3;
 					if (node1 -> type == 0){
-						// char ...
+						// char
+						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
 					} else{
 						// int
 						emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
@@ -106,7 +107,16 @@ Stmt      	: Reference '=' Expr ';' {
 			| WHILE '(' Bool ')' '{' Stmts '}' 
 			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
 			| READ Reference ';'
-			| WRITE Expr ';'
+			| WRITE Expr ';' {
+					SymbolEntry *node = $2;
+					if (node -> type == 0){
+						// char
+						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+					} else{
+						// int
+						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+					}
+				}
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
 			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
 			| Reference '+' '=' Expr ';' { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; } 
@@ -173,13 +183,19 @@ Factor		: '(' Expr ')'
 					$$ = $1;
 				}
 	  		| NUMBER {
-				  	int tmpReg = globalReg;
-					emit(NOLABEL, _LOADI, $1, getNextRegister(), EMPTY);
+				  	int tmpReg = getNextRegister();
+					emit(NOLABEL, _LOADI, $1, tmpReg, EMPTY);
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
 					$$ = node;
 				} 
-	  		| CHARCONST 
+	  		| CHARCONST {
+				  	int tmpReg = getNextRegister();
+					emit(NOLABEL, _LOADI, $1, tmpReg, EMPTY);
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+			  	}
 	  		; 
 Reference 	: NAME {
 					SymbolEntry * node = lookupTable($1);

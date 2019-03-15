@@ -507,13 +507,13 @@ static const yytype_uint8 yyrline[] =
 {
        0,    55,    55,    56,    57,    59,    60,    61,    62,    63,
       64,    66,    68,    69,    71,    72,    74,    83,    85,    86,
-      88,    90,    91,    93,   103,   104,   105,   106,   107,   108,
-     109,   110,   111,   112,   113,   115,   116,   117,   118,   119,
-     120,   122,   123,   124,   125,   126,   127,   128,   129,   130,
-     131,   132,   134,   135,   136,   137,   138,   139,   141,   142,
-     144,   145,   147,   148,   150,   151,   152,   153,   154,   155,
-     156,   157,   159,   160,   161,   165,   166,   167,   171,   172,
-     175,   182,   184,   192,   194,   195
+      88,    90,    91,    93,   104,   105,   106,   107,   108,   109,
+     110,   120,   121,   122,   123,   125,   126,   127,   128,   129,
+     130,   132,   133,   134,   135,   136,   137,   138,   139,   140,
+     141,   142,   144,   145,   146,   147,   148,   149,   151,   152,
+     154,   155,   157,   158,   160,   161,   162,   163,   164,   165,
+     166,   167,   169,   170,   171,   175,   176,   177,   181,   182,
+     185,   192,   200,   208,   210,   211
 };
 #endif
 
@@ -1636,7 +1636,8 @@ yyreduce:
 					SymbolEntry *node1 = (yyvsp[(1) - (4)].entry);
 					SymbolEntry *node2 = (yyvsp[(3) - (4)].entry);
 					if (node1 -> type == 0){
-						// char ...
+						// char
+						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
 					} else{
 						// int
 						emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
@@ -1644,147 +1645,172 @@ yyreduce:
 				;}
     break;
 
-  case 31:
+  case 30:
 #line 110 "myparser.y"
+    {
+					SymbolEntry *node = (yyvsp[(2) - (3)].entry);
+					if (node -> type == 0){
+						// char
+						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+					} else{
+						// int
+						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+					}
+				;}
+    break;
+
+  case 31:
+#line 120 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 32:
-#line 111 "myparser.y"
+#line 121 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 33:
-#line 112 "myparser.y"
+#line 122 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 34:
-#line 113 "myparser.y"
+#line 123 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 35:
-#line 115 "myparser.y"
+#line 125 "myparser.y"
     { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; ;}
     break;
 
   case 36:
-#line 116 "myparser.y"
+#line 126 "myparser.y"
     { yyerror("unexpected NAME. No such reserved word"); yyclearin; ;}
     break;
 
   case 37:
-#line 117 "myparser.y"
+#line 127 "myparser.y"
     { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ ;}
     break;
 
   case 38:
-#line 118 "myparser.y"
+#line 128 "myparser.y"
     { yyerror("Missing closing curly brace '}'"); ;}
     break;
 
   case 39:
-#line 119 "myparser.y"
+#line 129 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 40:
-#line 120 "myparser.y"
+#line 130 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 48:
-#line 129 "myparser.y"
+#line 139 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 49:
-#line 130 "myparser.y"
+#line 140 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 50:
-#line 131 "myparser.y"
+#line 141 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 51:
-#line 132 "myparser.y"
+#line 142 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 52:
-#line 134 "myparser.y"
+#line 144 "myparser.y"
     { yyerror("can not make an assignment to write"); yyclearin; ;}
     break;
 
   case 53:
-#line 135 "myparser.y"
+#line 145 "myparser.y"
     { yyerror("No such reserved word"); yyclearin; ;}
     break;
 
   case 54:
-#line 136 "myparser.y"
+#line 146 "myparser.y"
     { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ ;}
     break;
 
   case 55:
-#line 137 "myparser.y"
+#line 147 "myparser.y"
     { yyerror("Missing closing curly brace '}'"); ;}
     break;
 
   case 56:
-#line 138 "myparser.y"
+#line 148 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 57:
-#line 139 "myparser.y"
+#line 149 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 71:
-#line 157 "myparser.y"
+#line 167 "myparser.y"
     { yyerror("Forgot an equal '=' in RelExprssion"); ;}
     break;
 
   case 74:
-#line 161 "myparser.y"
+#line 171 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 77:
-#line 167 "myparser.y"
+#line 177 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 79:
-#line 172 "myparser.y"
+#line 182 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 80:
-#line 175 "myparser.y"
+#line 185 "myparser.y"
     {
-				  	int tmpReg = globalReg;
-					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].int_val), getNextRegister(), EMPTY);
+				  	int tmpReg = getNextRegister();
+					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].int_val), tmpReg, EMPTY);
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
 					(yyval.entry) = node;
 				;}
     break;
 
+  case 81:
+#line 192 "myparser.y"
+    {
+				  	int tmpReg = getNextRegister();
+					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].char_val), tmpReg, EMPTY);
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					(yyval.entry) = node;
+			  	;}
+    break;
+
   case 82:
-#line 184 "myparser.y"
+#line 200 "myparser.y"
     {
 					SymbolEntry * node = lookupTable((yyvsp[(1) - (1)].string));
 					if (node == NULL){
@@ -1797,7 +1823,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 1801 "myparser.tab.c"
+#line 1827 "myparser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2011,7 +2037,7 @@ yyreturn:
 }
 
 
-#line 198 "myparser.y"
+#line 214 "myparser.y"
                     
  /* C code */
 
