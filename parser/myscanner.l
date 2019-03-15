@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include "symbolTable.h"
 
 extern int yylineno;
 extern int errorCount;
@@ -46,12 +47,12 @@ extern int errorCount;
 "["                     { return '['; }
 "]"                     { return ']'; }
 ","                     { return ','; }
-[0-9]+                  { return NUMBER; }
+[0-9]+                  { yylval.string = atoi(yytext); return NUMBER; }
 [A-Za-z][A-Za-z0-9]*    {   yylval.string = malloc(strlen(yytext) + 1);  // need include \0
                             strcpy(yylval.string, yytext); 
                             return NAME; 
                         }
-'(.|\\.)'               { return CHARCONST; }
+'(.|\\.)'               { yylval.char_val = yytext[1]; return CHARCONST; }
 [ \t]                   ;
 [\n]                    { YYINCR(1); }
 .                       { fprintf (stderr, "Unknown character %s at line %d\n", yytext, yylineno); }

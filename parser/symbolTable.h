@@ -1,18 +1,22 @@
 #include <string.h>
 
-typedef enum type {TYPE_INT=0, TYPE_CHAR=1} Type;
+#define MAX_DIMENSION 3
 
 typedef struct {
   char *name;
-  int index;
-  Type type;
+  int regNum;   //in reg
+  int type;   // 0 for char, 1 for int
   int isArray;  // 1 for array; 0 for scalar
+  int offset;   // in memory
+  int dimension;
+  int dim[MAX_DIMENSION][2]; // first is low index, second is high index
+  int space;
 } SymbolEntry;
 
-extern void InitSymbolTable();
+extern void initTable();
 
-extern SymbolEntry* lookup(char *name);
+extern SymbolEntry* lookupTable(char *name);
 
-extern void insert(char *name, Type type, int index);
+extern void insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]);
 
-extern void PrintSymbolTable();
+extern void printTable();

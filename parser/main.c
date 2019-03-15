@@ -1,15 +1,10 @@
 #include <stdio.h>
+#include "symbolTable.h"
 int yylineno;
 int errorCount = 0;
 
 FILE *yyin;
-
-/*
- * local variables at most 100 (a listing of variables used in Demo)
- */
-#define MAXVARS 100
-static char* vars[MAXVARS];  // store variable address
-static int numVars = 0;
+FILE *output;
 
 // must have yyerror, yywrap
 int yyerror (const char *s) {	
@@ -19,49 +14,19 @@ int yyerror (const char *s) {
 
 int yywrap (void) {return 1;}  // means end
 
-// find if the varname is already in vars, return addr of the variable
-char* findVar(char *varname) {
-	if (varname == NULL)
-		return NULL;
-	int i;
-	for (i = 0; i < numVars; i++){
-		if (strcmp(vars[i], varname) == 0)  // already exists
-			return vars + i;
-	}
-
-	return NULL;
+char * getOutputName(char* str){
+			int i = 0;
+			while(str[i] != '.') i++;
+			char * prefix = strndup(str, i);
+			return strcat(prefix, ".i");
 }
-
-// add the new variable to vars, return addr of the variable
-char* addVar(char *varname) {
-  if (varname == NULL)
-    return NULL;
-
-	if (numVars >= MAXVARS) {
-		fprintf (stderr, "The maximum number %d of variables reached\n", MAXVARS);
-		return NULL;
-	}
-
-	vars[numVars] = malloc(strlen(varname) + 1);  // last pos store the addr of new space
-	strcpy(vars[numVars], varname);
-	numVars++;
-
-	return vars + numVars - 1;  // base addr + offset
-}
-
-// get a variable name from parser, add to vars if it is a new one 
-void getVar(char* varname) {
-  	char* var;
-
-  	var = findVar(varname);
-	if (var == NULL)
-		var = addVar(varname);
-}
-
 
 int main (int argc, char* argv[]) {
 	int printHelp = 0;
 	int printVar = 0;
+
+	char *outputName = "";
+
 	// ./demo -h test1.demo
 	if (argc == 3) {
 		char *tmpH = "-h";
@@ -72,6 +37,8 @@ int main (int argc, char* argv[]) {
 			if (!yyin){
 				printf("error, unable to open file %s\n", argv[2]);
 				return 0;
+			}else {
+				outputName = getOutputName(argv[2]);
 			}
 		}else if(strcmp(argv[1], tmpS) == 0){
 			printVar = 1;
@@ -79,6 +46,8 @@ int main (int argc, char* argv[]) {
 			if (!yyin){
 				printf("error, unable to open file %s\n", argv[2]);
 				return 0;
+			}else {
+				outputName = getOutputName(argv[2]);
 			}
 		}else if(argv[1][0] == '-'){
 			printf("no option '-%c', please use -h to check.\n", argv[1][1]);
@@ -101,6 +70,8 @@ int main (int argc, char* argv[]) {
 			if(!yyin) {
 				printf("error, unable to open file %s\n", argv[1]);
 				return 0;
+			} else {
+				outputName = getOutputName(argv[1]);
 			}
 		}
 	}
@@ -110,25 +81,33 @@ int main (int argc, char* argv[]) {
         printf("========== Command help start ==========\n");
         printf("./demo -h: check command line syntax\n");
         printf("./demo filename: compile target file\n");
-		printf("./demo -s filename: compile and list variables in the program\n");
+				printf("./demo -s filename: print symbol table\n");
         printf("./demo: compile from stdin, ^D to EOF\n");
-		printf("========== Command help end ==========\n");
+				printf("========== Command help end ==========\n");
 
-		if(argc == 2) {
-			return 0;
-		}
+				if(argc == 2) {
+					return 0;
+				}
     }
+	
+	output = fopen(outputName, "w");
+	if (output == NULL) { 
+			printf("error, unable to open output file %s \n", outputName);
+			return 0;
+	}
+
+	initTable();
 
 	yyparse();
+  
+	fclose(output);
 
 	if (errorCount == 0) {
 		printf("Parse succeeds!\n");  //ctrl+d if use stdin
+
 		// print all the variables 
 		if(printVar == 1){
-			printf("======== Variable Name in Program ========\n");
-			int i;
-			for (i=0; i<numVars; i++)
-				printf("%s \n", vars[i]);
+			printTable();
 		}
 	} else {
 		printf("Parser fails. Total number of errors: %d\n", errorCount);

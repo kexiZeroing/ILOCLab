@@ -1,8 +1,10 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "symbolTable.h"
 
 #define HASH_TABLE_SIZE 499  // max prime in 1-500
+extern int globalOffset;
 
 static SymbolEntry **HashTable;  // look up will return an address
 
@@ -44,7 +46,7 @@ SymbolEntry* lookupTable(char* name) {
     return NULL;
 }
 
-void insertToTable(char* name, Type type, int index, int isArray) {
+void insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]) {
     int visitedNum = 0;  
     int curIndex = getHash(name);
  
@@ -71,33 +73,57 @@ void insertToTable(char* name, Type type, int index, int isArray) {
     strcpy(HashTable[curIndex]->name, name);
 
     HashTable[curIndex] -> type = type; 
-    HashTable[curIndex] -> index = index; 
+    HashTable[curIndex] -> regNum = regNum; 
     HashTable[curIndex] -> isArray = isArray;
+    
+    if (isArray){
+        HashTable[curIndex] -> dimension = dimension;
+        HashTable[curIndex] -> offset = offset;
+        int i;
+        int wid;
+        int space;
+        for (i = 0; i < dimension; i++) {
+            HashTable[curIndex] -> dim[i][0] = dim[i][0];
+            HashTable[curIndex] -> dim[i][1] = dim[i][1];
+            if (i==0){
+                space = dim[i][1] - dim[i][0] + 1;
+            } else {
+                space = space * (dim[i][1] - dim[i][0] + 1);  //[2:4, 1:4]  
+            }
+        }
+        wid = (type == 0) ? 1 : 4; // char: 1, int: 4
+        space = space * wid;
+        globalOffset += space;
+        HashTable[curIndex] -> space = space;
+    } else{
+        HashTable[curIndex] -> regNum = regNum;
+    }
+}
+
+char* printType(int type){
+    switch (type) { 
+        case 0: 
+            return "char";	
+        case 1: 
+            return "integer"; 
+        default: 
+            printf("some error in type \n");
+            return "";
+        }
 }
 
 void printTable() {
     printf("\n ----------- Symbol Table -----------\n");
     int i;
     for(i=0; i < HASH_TABLE_SIZE; i++){
-        // scalar
-        if(HashTable[i] != NULL && HashTable[i] -> isArray == 0) {
-            printf("Scalar: %s has type %s with offset %d\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->index); 
-        }
-        // array
-        if(HashTable[i] != NULL && HashTable[i] -> isArray == 1) {
-            printf("Array: %s has element of type %s with offset %d\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->index); 
+        if(HashTable[i] != NULL) {
+            if(HashTable[i] -> isArray) {
+                printf("(Name:%s, Type:%s, Address:%d, dimensions:)\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->offset); 
+            } else {
+                printf("(Name:%s, Type:%s, Address:r%d, dimensions:)\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->regNum); 
+            }
         }
     }
-    printf("\n --------------------------------\n\n");
+    printf("\n --------------------------------\n");
 }
 
-static char* printType(Type type){
-    switch (type) { 
-        case TYPE_INT: 
-            return "integer";	
-        case TYPE_CHAR: 
-            return "char"; 
-        default: 
-            printf("some error in type \n");
-        }
-}

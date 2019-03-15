@@ -1,18 +1,24 @@
 /* C declarations */
 %{
 #include <stdio.h>
+#include "symbolTable.h"
+#include "myiloc.h"
 extern int yylineno;
 extern int errorCount;
 
-FILE *output;
+int CUR_TYPE; // 0 for char, 1 for int
+int globalOffset = 0;
+int globalReg = 0;
 %}
 
 /* Bison declarations */
 %error-verbose
 
-%union {
-  double  value;
-  char    *string;
+%union{
+    struct SymbolEntry *entry;
+    int int_val;
+    char* string;
+    char char_val;
 }
 
 %start Procedure
@@ -38,9 +44,11 @@ FILE *output;
 %token GT
 %token GE
 %token <string> NAME
-%token NUMBER
-%token CHARCONST
+%token <int_val> NUMBER
+%token <char_val> CHARCONST
 
+%type <int_val> Type
+%type <entry> Stmt Stmts Expr Exprs Reference Factor Term
 
 /* productions and actions */
 %%
@@ -57,14 +65,22 @@ Decls 		: Decls Decl ';'
 	 		;
 Decl		: Type SpecList
 			;
-Type		: INT
-			| CHAR
+Type		: INT { CUR_TYPE = 1; }
+			| CHAR { CUR_TYPE = 0; }
 			;
 SpecList	: SpecList ',' Spec
 			| Spec 
 			;
-Spec		: NAME  { getVar($1); }
-			| NAME '[' Bounds ']' { getVar($1); }
+Spec		: NAME { 
+					if (lookupTable($1) != NULL){
+						yyerror("variable has been already declared.\n");
+					} else {
+						int dim[MAX_DIMENSION][2];
+						// insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]);
+						insertToTable($1, CUR_TYPE, getNextRegister(), 0, -1, -1, dim);
+					}
+ 				}
+			| NAME '[' Bounds ']' 
 			;
 Bounds		: Bounds ',' Bound 
       		| Bound 
@@ -74,7 +90,16 @@ Bound		: NUMBER ':' NUMBER
 Stmts		: Stmts Stmt 
 	 		| Stmt 
 	 		;
-Stmt      	: Reference '=' Expr ';' 
+Stmt      	: Reference '=' Expr ';' {
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+					if (node1 -> type == 0){
+						// char ...
+					} else{
+						// int
+						emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+					}
+				}
 			| '{' Stmts '}'
 			| IF '(' Bool ')' THEN Stmt 
           	| IF '(' Bool ')' THEN WithElse ELSE Stmt 
@@ -133,18 +158,37 @@ RelExpr 	: RelExpr LT Expr
 			;
 Expr		: Expr '+' Term  
 			| Expr '-' Term  
-			| Term 
+			| Term {
+					$$ = $1;
+				}
 			;
 Term		: Term '*' Factor 
 			| Term '/' Factor 
-			| Factor 
+			| Factor {
+					$$ = $1;
+				}
 			;
 Factor		: '(' Expr ')' 
-         	| Reference
-	  		| NUMBER 
+         	| Reference {
+					$$ = $1;
+				}
+	  		| NUMBER {
+				  	int tmpReg = globalReg;
+					emit(NOLABEL, _LOADI, $1, getNextRegister(), EMPTY);
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				} 
 	  		| CHARCONST 
 	  		; 
-Reference 	: NAME
+Reference 	: NAME {
+					SymbolEntry * node = lookupTable($1);
+					if (node == NULL){
+						yyerror("Variable has not beed declared\n");
+					} else{
+						$$ = node;
+					}
+				}
           	| NAME '[' Exprs ']'
 			;
 Exprs     	: Expr ',' Exprs 

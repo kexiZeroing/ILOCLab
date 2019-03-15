@@ -2,22 +2,14 @@
 #include <stdlib.h>
 #include "myiloc.h"
 
-static nextRegister = 0; 
-static nextLabel = 0;
-static nextOffset = 0;
+int nextLabel = 0;
 
 int getNextRegister(){
-    return nextRegister++;
+    return globalReg++;
 }
 
 int getNextLabel(){
     return nextLabel++;
-}
-
-int getNextOffset(int units){ 
-    int tmp = nextOffset;
-    nextOffset += units * 4;
-    return tmp;
 }
 
 void emit(int labelIdx, Opcode opcode, int addr1, int addr2, int addr3){
@@ -35,161 +27,161 @@ void emit(int labelIdx, Opcode opcode, int addr1, int addr2, int addr3){
         case NOP: 
             fprintf(output, "%s\t nop \n", label);
             break;
-        case ADD:
+        case _ADD:
             fprintf(output, "%s\t add r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case ADDI:
+        case _ADDI:
             fprintf(output, "%s\t addI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case SUB:
+        case _SUB:
             fprintf(output, "%s\t sub r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case SUBI:
+        case _SUBI:
             fprintf(output, "%s\t subI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case MULT:
+        case _MULT:
             fprintf(output, "%s\t mult r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case MULTI:
+        case _MULTI:
             fprintf(output, "%s\t multI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case DIV:
+        case _DIV:
             fprintf(output, "%s\t div r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case DIVI:
+        case _DIVI:
             fprintf(output, "%s\t divI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
 
-        case LSHIFT:
+        case _LSHIFT:
             fprintf(output, "%s\t lshift r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case LSHIFTI:
+        case _LSHIFTI:
             fprintf(output, "%s\t lshiftI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case RSHIFT:
+        case _RSHIFT:
             fprintf(output, "%s\t rshift r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case RSHIFTI:
+        case _RSHIFTI:
             fprintf(output, "%s\t rshiftI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
 
-        case AND:
+        case _AND:
             fprintf(output, "%s\t and r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case ANDI:
+        case _ANDI:
             fprintf(output, "%s\t andI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case OR:
+        case _OR:
             fprintf(output, "%s\t or r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case ORI:
+        case _ORI:
             fprintf(output, "%s\t orI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case NOT:
+        case _NOT:
             fprintf(output, "%s\t not r%d \t=> r%d \n", label, addr1, addr2);
             break;
 
         // Data-Movement Operations
-        case LOAD: 
+        case _LOAD: 
             fprintf(output, "%s\t load r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case LOADI: 
+        case _LOADI: 
             fprintf(output, "%s\t loadI %d \t=> r%d \n", label, addr1, addr2);
             break;
-        case LOADAI: 
+        case _LOADAI: 
             fprintf(output, "%s\t loadAI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case LOADAO: 
+        case _LOADAO: 
             fprintf(output, "%s\t loadAO r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case CLOAD: 
+        case _CLOAD: 
             fprintf(output, "%s\t cload r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case CLOADAI: 
+        case _CLOADAI: 
             fprintf(output, "%s\t cloadAI r%d, %d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
-        case CLOADAO: 
+        case _CLOADAO: 
             fprintf(output, "%s\t cloadAO r%d, r%d \t=> r%d \n", label, addr1, addr2, addr3);
             break;
         
-        case STORE: 
+        case _STORE: 
             fprintf(output, "%s\t store r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case STOREAI: 
+        case _STOREAI: 
             fprintf(output, "%s\t storeAI r%d \t=> r%d, %d \n", label, addr1, addr2, addr3);
             break;
-        case STOREAO: 
+        case _STOREAO: 
             fprintf(output, "%s\t storeAO r%d \t=> r%d, r%d \n", label, addr1, addr2, addr3);
             break;
-        case CSTORE: 
+        case _CSTORE: 
             fprintf(output, "%s\t cstore r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case CSTOREAI: 
+        case _CSTOREAI: 
             fprintf(output, "%s\t cstoreAI r%d \t=> r%d, %d \n", label, addr1, addr2, addr3);
             break;
-        case CSTOREAO: 
+        case _CSTOREAO: 
             fprintf(output, "%s\t cstoreAO r%d \t=> r%d, r%d \n", label, addr1, addr2, addr3);
             break;
 
-        case I2I: 
+        case _I2I: 
             fprintf(output, "%s\t i2i r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case C2C: 
+        case _C2C: 
             fprintf(output, "%s\t c2c r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case I2C: 
+        case _I2C: 
             fprintf(output, "%s\t i2c r%d \t=> r%d \n", label, addr1, addr2);
             break;
-        case C2I: 
+        case _C2I: 
             fprintf(output, "%s\t c2i r%d \t=> r%d \n", label, addr1, addr2);
             break;
 
         // Control-Flow Operations
-        case BR: 
+        case _BR: 
             fprintf(output, "%s\t br \t-> L%d\n", label, addr1);
             break;
-        case CBR: 
+        case _CBR: 
             fprintf(output, "%s\t cbr r%d \t-> L%d, L%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_LT: 
+        case _CMP_LT: 
             fprintf(output, "%s\t cmp_LT r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_LE: 
+        case _CMP_LE: 
             fprintf(output, "%s\t cmp_LE r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_GT: 
+        case _CMP_GT: 
             fprintf(output, "%s\t cmp_GT r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_GE: 
+        case _CMP_GE: 
             fprintf(output, "%s\t cmp_GE r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_EQ: 
+        case _CMP_EQ: 
             fprintf(output, "%s\t cmp_EQ r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case CMP_NE: 
+        case _CMP_NE: 
             fprintf(output, "%s\t cmp_NE r%d, r%d \t=> r%d\n", label, addr1, addr2, addr3);
             break;
-        case HALT: 
+        case _HALT: 
             fprintf(output, "%s\t halt \n", label);
             break;
 
         // Input and Output Operations
-        case READ: 
+        case _READ: 
             fprintf(output, "%s\t read \t=> r%d\n", label, addr1);
             break;
-        case CREAD: 
+        case _CREAD: 
             fprintf(output, "%s\t cread \t=> r%d\n", label, addr1);
             break;
-        case OUTPUT: 
+        case _OUTPUT: 
             fprintf(output, "%s\t output \t %d\n", label, addr1);
             break;
-        case COUTPUT: 
+        case _COUTPUT: 
             fprintf(output, "%s\t coutput \t %d\n", label, addr1);
             break;
-        case WRITE: 
+        case _WRITE: 
             fprintf(output, "%s\t write \t r%d\n", label, addr1);
             break;
-        case CWRITE: 
+        case _CWRITE: 
             fprintf(output, "%s\t cwrite \t r%d\n", label, addr1);
             break;
 
