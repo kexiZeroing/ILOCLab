@@ -24,3 +24,18 @@ typedef struct{
 	int secondLabel;
 	int thirdLabel;
 } IfStructure;
+
+// while structure
+typedef struct{
+	int firstLabel;
+	int secondLabel;
+    int thirdLabel;
+}WhileStructure;
+
+// for structure
+typedef struct{
+	int firstLabel;
+	int secondLabel;
+    int thirdLabel;
+	int regNum;  //for loop variable
+}ForStructure;

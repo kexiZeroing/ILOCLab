@@ -33,12 +33,12 @@ L9:	 nop
 	 cbr r9 	-> L12, L13
 L12:	 nop 
 	 write 	 r0
-	 br 	-> L14
-L13:	 nop 
 	 write 	 r1
-	 br 	-> L14
-L14:	 nop 
-L13:	 nop 
+	 br 	-> L11
+L10:	 nop 
+	 write 	 r2
+	 br 	-> L11
+L11:	 nop 
 	 cmp_LT r1, r0 	=> r10
 	 cbr r10 	-> L15, L16
 L15:	 nop 
@@ -47,9 +47,9 @@ L15:	 nop
 	 cbr r12 	-> L18, L19
 L18:	 nop 
 	 write 	 r0
-	 br 	-> L20
-L19:	 nop 
 	 write 	 r1
-	 br 	-> L20
-L20:	 nop 
-L19:	 nop 
+	 br 	-> L17
+L16:	 nop 
+	 write 	 r2
+	 br 	-> L17
+L17:	 nop 

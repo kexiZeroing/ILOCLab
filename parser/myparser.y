@@ -18,6 +18,8 @@ int globalLabel = 0;
 %union{
     struct SymbolEntry *entry;
 	struct IfStructure *ifStructure;
+	struct WhileStructure *whileStructure;
+	struct ForStructure *forStructure;
     int int_val;
     char* string;
     char char_val;
@@ -51,7 +53,9 @@ int globalLabel = 0;
 
 %type <int_val> Type
 %type <entry> Stmt Stmts Expr Exprs Reference Factor Term RelExpr Bool OrTerm AndTerm
-%type <ifStructure> IFHead
+%type <ifStructure> IFHead IFMid
+%type <whileStructure> WhileHead
+%type <forStructure> ForHead
 
 /* productions and actions */
 %%
@@ -113,17 +117,37 @@ Stmt      	: Reference '=' Expr ';' {
 					IfStructure *ifNode = $1;
 					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
 				}
-          	| IFHead THEN WithElse {
-				  	IfStructure *ifNode = $1;
-					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
-					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
-			  	} ELSE Stmt {
+          	| IFMid Stmt {
 				  	IfStructure *ifNode = $1;
 					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
 					emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
 			  	}
-			| WHILE '(' Bool ')' '{' Stmts '}' 
-			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
+			| WhileHead '(' Bool ')' {
+					WhileStructure *whileNode = $1;
+					SymbolEntry *node = $3;
+
+					// body part
+					emit(NOLABEL, _CBR, node->regNum, whileNode->secondLabel, whileNode->thirdLabel);
+					emit(whileNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);  
+				} '{' Stmts '}' {
+					// exit part
+					WhileStructure *whileNode = $1;
+					emit(NOLABEL, _BR, whileNode->firstLabel, EMPTY, EMPTY);
+					emit(whileNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
+				}
+			|  ForHead BY Expr '{' Stmts '}' {
+					ForStructure *forNode = $1;
+					SymbolEntry *exprNode = $3;
+
+					if (exprNode -> isImme) {
+						emit(NOLABEL, _ADDI, forNode->regNum, exprNode->regNum, forNode->regNum);
+					}else {
+						emit(NOLABEL, _ADD, forNode->regNum, exprNode->regNum, forNode->regNum);
+					}
+
+					emit(NOLABEL, _BR, forNode->firstLabel, EMPTY, EMPTY);
+					emit(forNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
+				}
 			| READ Reference ';'
 			| WRITE Expr ';' {
 					SymbolEntry *node = $2;
@@ -145,20 +169,78 @@ Stmt      	: Reference '=' Expr ';' {
 			| Reference '=' Expr error { yyerror("Missing semicolon ';' after assignment"); }
 			| error ';'  { yyerror("Do not support this statement"); yyclearin; yyerrok; }
 			;
+ForHead		: FOR NAME '=' Expr TO Expr {
+					// allocation
+					ForStructure *forNode = malloc(sizeof(ForStructure));
+					forNode->firstLabel = getNextLabel();
+					forNode->secondLabel = getNextLabel();
+					forNode->thirdLabel = getNextLabel();
+
+					// init assign
+					SymbolEntry *initNode = $4;
+
+					SymbolEntry *nameNode = lookupTable($2);
+					if (nameNode == NULL){
+						yyerror("Variable has not beed declared\n");
+					} 
+					if (initNode -> isImme) {
+						emit(NOLABEL, _LOADI, initNode->regNum, nameNode->regNum, EMPTY);
+					}else {
+						emit(NOLABEL, _I2I, initNode->regNum, nameNode->regNum, EMPTY);
+					}
+					forNode->regNum = nameNode->regNum;
+
+					// compare
+					int tmpReg1 = getNextRegister();
+					SymbolEntry *resultNode = $6;
+
+					if (resultNode -> isImme) {
+						emit(NOLABEL, _LOADI, resultNode->regNum, tmpReg1, EMPTY);
+					}else {
+						emit(NOLABEL, _I2I, resultNode->regNum, tmpReg1, EMPTY);
+					}
+					emit(forNode->firstLabel, NOP, EMPTY, EMPTY, EMPTY);
+
+					int tmpReg2 = getNextRegister();
+					emit(NOLABEL, _CMP_LE, nameNode->regNum, tmpReg1, tmpReg2);
+					emit(NOLABEL, _CBR, tmpReg2, forNode->secondLabel, forNode->thirdLabel);
+
+					// loop label
+					emit(forNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
+					$$ = forNode;
+				}
+			;
+IFMid		: IFHead THEN WithElse ELSE {
+				  	IfStructure *ifNode = $1;
+					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
+
+					$$ = ifNode;
+				}
 IFHead      : IF '(' Bool ')' { 
-					IfStructure ifNode;
-					ifNode.firstLabel = getNextLabel();
-					ifNode.secondLabel = getNextLabel();
-					ifNode.thirdLabel = getNextLabel();
+					IfStructure *ifNode = malloc(sizeof(IfStructure));
+					ifNode->firstLabel = getNextLabel();
+					ifNode->secondLabel = getNextLabel();
+					ifNode->thirdLabel = getNextLabel();
 
 					SymbolEntry *node = $3;
 
-					emit(NOLABEL, _CBR, node->regNum, ifNode.firstLabel, ifNode.secondLabel);
-					emit(ifNode.firstLabel, NOP, EMPTY, EMPTY, EMPTY);
-					$$ = &ifNode;
+					emit(NOLABEL, _CBR, node->regNum, ifNode->firstLabel, ifNode->secondLabel);
+					emit(ifNode->firstLabel, NOP, EMPTY, EMPTY, EMPTY);
+					$$ = ifNode;
 				} 
 			;
-WithElse	: IFHead THEN WithElse ELSE WithElse 
+WhileHead   : WHILE  {
+					WhileStructure *whileNode = malloc(sizeof(WhileStructure));
+					whileNode->firstLabel = getNextLabel();
+					whileNode->secondLabel = getNextLabel();
+					whileNode->thirdLabel = getNextLabel();
+
+					emit(whileNode->firstLabel, NOP, EMPTY, EMPTY, EMPTY);
+					$$ = whileNode;
+				}
+			;
+WithElse	: IFMid WithElse 
 			| Reference '=' Expr ';' {
 					SymbolEntry *node1 = $1;
 					SymbolEntry *node2 = $3;
