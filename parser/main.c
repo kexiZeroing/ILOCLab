@@ -14,7 +14,7 @@ int yyerror (const char *s) {
 
 int yywrap (void) {return 1;}  // means end
 
-char * getOutputName(char* str){
+char* getOutputName(char* str){
 			int i = 0;
 			while(str[i] != '.') i++;
 			char * prefix = strndup(str, i);

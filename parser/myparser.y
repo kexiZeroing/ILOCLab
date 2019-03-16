@@ -9,6 +9,7 @@ extern int errorCount;
 int CUR_TYPE; // 0 for char, 1 for int
 int globalOffset = 0;
 int globalReg = 0;
+int globalLabel = 0;
 %}
 
 /* Bison declarations */
@@ -16,6 +17,7 @@ int globalReg = 0;
 
 %union{
     struct SymbolEntry *entry;
+	struct IfStructure *ifStructure;
     int int_val;
     char* string;
     char char_val;
@@ -48,7 +50,8 @@ int globalReg = 0;
 %token <char_val> CHARCONST
 
 %type <int_val> Type
-%type <entry> Stmt Stmts Expr Exprs Reference Factor Term
+%type <entry> Stmt Stmts Expr Exprs Reference Factor Term RelExpr Bool OrTerm AndTerm
+%type <ifStructure> IFHead
 
 /* productions and actions */
 %%
@@ -106,8 +109,19 @@ Stmt      	: Reference '=' Expr ';' {
 					}
 				}
 			| '{' Stmts '}'
-			| IF '(' Bool ')' THEN Stmt 
-          	| IF '(' Bool ')' THEN WithElse ELSE Stmt 
+			| IFHead THEN Stmt {
+					IfStructure *ifNode = $1;
+					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
+				}
+          	| IFHead THEN WithElse {
+				  	IfStructure *ifNode = $1;
+					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
+			  	} ELSE Stmt {
+				  	IfStructure *ifNode = $1;
+					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+					emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
+			  	}
 			| WHILE '(' Bool ')' '{' Stmts '}' 
 			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
 			| READ Reference ';'
@@ -128,18 +142,52 @@ Stmt      	: Reference '=' Expr ';' {
 			}
 			| WRITE '=' Expr ';' { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; }
 			| NAME NAME ';' { yyerror("unexpected NAME. No such reserved word"); yyclearin; }
-			| IF '(' Bool ')' error  { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ }
-			| IF '(' Bool ')' THEN '{' Stmts error { yyerror("Missing closing curly brace '}'"); }
 			| Reference '=' Expr error { yyerror("Missing semicolon ';' after assignment"); }
 			| error ';'  { yyerror("Do not support this statement"); yyclearin; yyerrok; }
 			;
-WithElse	: IF '(' Bool ')' THEN WithElse ELSE WithElse
-			| Reference '=' Expr ';' 
+IFHead      : IF '(' Bool ')' { 
+					IfStructure ifNode;
+					ifNode.firstLabel = getNextLabel();
+					ifNode.secondLabel = getNextLabel();
+					ifNode.thirdLabel = getNextLabel();
+
+					SymbolEntry *node = $3;
+
+					emit(NOLABEL, _CBR, node->regNum, ifNode.firstLabel, ifNode.secondLabel);
+					emit(ifNode.firstLabel, NOP, EMPTY, EMPTY, EMPTY);
+					$$ = &ifNode;
+				} 
+			;
+WithElse	: IFHead THEN WithElse ELSE WithElse 
+			| Reference '=' Expr ';' {
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+					if (node1 -> type == 0){
+						// char
+						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
+					} else{
+						// int
+						if (node2 -> isImme) {
+							emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
+						}else {
+							emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+						}
+					}
+				}
 			| '{' Stmts '}'
 			| WHILE '(' Bool ')' '{' Stmts '}' 
 			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
 			| READ Reference ';'
-			| WRITE Expr ';'
+			| WRITE Expr ';' {
+					SymbolEntry *node = $2;
+					if (node -> type == 0){
+						// char
+						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+					} else{
+						// int
+						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+					}
+				}
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
 			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
 			| Reference '+' '=' Expr ';' { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; } 
@@ -147,27 +195,184 @@ WithElse	: IF '(' Bool ')' THEN WithElse ELSE WithElse
 			}
 			| WRITE '=' Expr ';' { yyerror("can not make an assignment to write"); yyclearin; }
 			| NAME NAME ';' { yyerror("No such reserved word"); yyclearin; }
-			| IF '(' Bool ')' error  { yyerror("Missing keyword THEN"); /* just forget keyword then, do not need to throw away token */ }
-			| IF '(' Bool ')' THEN '{' Stmts error { yyerror("Missing closing curly brace '}'"); }
 			| Reference '=' Expr error { yyerror("Missing semicolon ';' after assignment"); }
 			| error ';'  { yyerror("Do not support this statement"); yyclearin; yyerrok; }
 			; 
-Bool      	: NOT OrTerm
-          	| OrTerm
+Bool      	: NOT OrTerm {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $2;
+					emit(NOLABEL, _NOT, node1->regNum, tmpReg, EMPTY);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+          	| OrTerm {
+					$$ = $1;
+			  	}
 			;
-OrTerm		: OrTerm OR AndTerm
-        	| AndTerm
+OrTerm		: OrTerm OR AndTerm {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+					emit(NOLABEL, _OR, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| AndTerm {
+					$$ = $1;
+				}
 			;
-AndTerm   	: AndTerm AND RelExpr
-          	| RelExpr
+AndTerm   	: AndTerm AND RelExpr {
+					int tmpReg = getNextRegister();
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+					emit(NOLABEL, _AND, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+          	| RelExpr {
+				  $$ = $1;
+			  }
 			;
-RelExpr 	: RelExpr LT Expr
-        	| RelExpr LE Expr
-        	| RelExpr EQ Expr
-        	| RelExpr NE Expr
-        	| RelExpr GE Expr
-        	| RelExpr GT Expr
-        	| Expr
+RelExpr 	: RelExpr LT Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_LT, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| RelExpr LE Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_LE, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+			}
+        	| RelExpr EQ Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_EQ, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| RelExpr NE Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_NE, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| RelExpr GE Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_GE, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| RelExpr GT Expr {
+					SymbolEntry *node1 = $1;
+					if(node1 -> isImme) {
+						int reg1 = getNextRegister();
+						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
+						node1 -> regNum = reg1;
+					} 
+				
+					SymbolEntry *node2 = $3;
+					if(node2 -> isImme) {
+						int reg2 = getNextRegister();
+						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
+						node2 -> regNum = reg2;
+					} 
+
+					int tmpReg = getNextRegister();
+					emit(NOLABEL, _CMP_GT, node1->regNum, node2->regNum, tmpReg);
+					
+					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+					node -> regNum = tmpReg;
+					$$ = node;
+				}
+        	| Expr {
+					$$ = $1;
+				}
 			| RelExpr '=' Expr { yyerror("Forgot an equal '=' in RelExprssion"); }
 			;
 Expr		: Expr '+' Term {

@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include "myiloc.h"
 
-int nextLabel = 0;
-
 int getNextRegister(){
     return globalReg++;
 }
 
 int getNextLabel(){
-    return nextLabel++;
+    return globalLabel++;
 }
 
 void emit(int labelIdx, Opcode opcode, int addr1, int addr2, int addr3){
