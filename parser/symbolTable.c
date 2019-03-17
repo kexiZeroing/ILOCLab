@@ -46,7 +46,7 @@ SymbolEntry* lookupTable(char* name) {
     return NULL;
 }
 
-void insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]) {
+void insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]) {
     int visitedNum = 0;  
     int curIndex = getHash(name);
  
@@ -78,7 +78,7 @@ void insertToTable(char *name, int type, int regNum, int isArray, int offset, in
     
     if (isArray){
         HashTable[curIndex] -> dimension = dimension;
-        HashTable[curIndex] -> offset = offset;
+        HashTable[curIndex] -> offset = globalOffset;
         int i;
         int wid;
         int space;
@@ -94,6 +94,7 @@ void insertToTable(char *name, int type, int regNum, int isArray, int offset, in
         wid = (type == 0) ? 1 : 4; // char: 1, int: 4
         space = space * wid;
         globalOffset += space;
+
         HashTable[curIndex] -> space = space;
     } else{
         HashTable[curIndex] -> regNum = regNum;

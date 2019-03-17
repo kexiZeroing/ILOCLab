@@ -16,6 +16,7 @@ int globalLabel = 0;
 %error-verbose
 
 %union{
+	struct SymbolEntries *entries;
     struct SymbolEntry *entry;
 	struct IfStructure *ifStructure;
 	struct WhileStructure *whileStructure;
@@ -52,7 +53,8 @@ int globalLabel = 0;
 %token <char_val> CHARCONST
 
 %type <int_val> Type
-%type <entry> Stmt Stmts Expr Exprs Reference Factor Term RelExpr Bool OrTerm AndTerm
+%type <entries> Exprs
+%type <entry> Stmt Stmts Expr Reference Factor Term RelExpr Bool OrTerm AndTerm Bound Bounds
 %type <ifStructure> IFHead IFMid
 %type <whileStructure> WhileHead
 %type <forStructure> ForHead
@@ -84,15 +86,42 @@ Spec		: NAME {
 					} else {
 						int dim[MAX_DIMENSION][2];
 						// insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]);
-						insertToTable($1, CUR_TYPE, getNextRegister(), 0, -1, -1, dim);
+						insertToTable($1, CUR_TYPE, getNextRegister(), 0, -1, dim);
 					}
  				}
-			| NAME '[' Bounds ']' 
+			| NAME '[' Bounds ']' {	
+					if (lookupTable($1) != NULL){
+						yyerror("variable has been already declared.\n");
+					} else {
+						SymbolEntry *node = $3;
+
+						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
+						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim);
+					}
+				}
 			;
-Bounds		: Bounds ',' Bound 
-      		| Bound 
+Bounds		: Bounds ',' Bound {  
+					SymbolEntry *node1 = $1;
+					SymbolEntry *node2 = $3;
+
+					node1->dim[node1->dimension][0] = node2->dim[0][0];
+					node1->dim[node1->dimension][1] = node2->dim[0][1];
+					node1->dimension++;
+
+					$$ = node1;
+				}
+      		| Bound {
+				  $$ = $1;
+			  }
       		;
-Bound		: NUMBER ':' NUMBER 
+Bound		: NUMBER ':' NUMBER {
+					SymbolEntry *node = malloc(sizeof(SymbolEntry));
+					node->dimension = 1;
+					node->dim[0][0] = $1;
+					node->dim[0][1] = $3;
+
+					$$ = node;
+				}
 			;
 Stmts		: Stmts Stmt 
 	 		| Stmt 
@@ -573,10 +602,42 @@ Reference 	: NAME {
 						$$ = node;
 					}
 				}
-          	| NAME '[' Exprs ']'
+          	| NAME '[' Exprs ']' {
+				  	SymbolEntry * node = lookupTable($1);
+				    if (node == NULL){
+						yyerror("Variable has not beed declared\n");
+					} else{
+						$$ = node;
+					}
+					int i;
+					for(i=0; i<$2->dimension; i++){
+						SymbolEntry * expr = $2->exprs[i];
+						// ....
+					}
+				}
 			;
-Exprs     	: Expr ',' Exprs 
-          	| Expr
+// Exprs     	: Expr ',' Exprs 
+Exprs     	: Exprs ',' Expr {
+				SymbolEntries * ptr = $1;
+				int dim = ptr->dimension ++;
+				ptr->dimension = dim;
+				if (dim > MAX_DIMENSION) {
+					// ... error
+				}
+				ptr->exprs[dim - 1] = $3;
+				$$ = ptr;
+			}
+          	| Expr {
+				SymbolEntries * ptr = malloc(sizeof(SymbolEntries));
+				ptr->dimension = 1;
+				ptr->exprs[0] = $1;
+
+					// SymbolEntry * node = $1;
+					// if(node2 -> isImme) {
+					// 	$$ = $1;
+				  	// }
+					
+			  	}
 			;
 
 %%                    

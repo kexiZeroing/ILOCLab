@@ -14,10 +14,17 @@ typedef struct {
   int isImme;
 } SymbolEntry;
 
+typedef struct{
+	int dimension;
+	SymbolEntry exprs[MAX_DIMENSION]
+	
+} SymbolEntries;
+
+
 extern void initTable();
 
 extern SymbolEntry* lookupTable(char *name);
 
-extern void insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]);
+extern void insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 
 extern void printTable();
