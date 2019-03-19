@@ -4,7 +4,7 @@
 #include "symbolTable.h"
 
 #define HASH_TABLE_SIZE 499  // max prime in 1-500
-extern int globalOffset;
+extern int globalOffset;   // start addr in memory (just for array)
 
 static SymbolEntry **HashTable;  // look up will return an address
 
@@ -76,8 +76,14 @@ void insertToTable(char *name, int type, int regNum, int isArray, int dimension,
     HashTable[curIndex] -> regNum = regNum; 
     HashTable[curIndex] -> isArray = isArray;
     
+    // array
     if (isArray){
         HashTable[curIndex] -> dimension = dimension;
+
+        // int array must word aligned
+        while (globalOffset % 4 != 0) {
+            globalOffset++;
+        }
         HashTable[curIndex] -> offset = globalOffset;
         int i;
         int wid;
@@ -86,18 +92,19 @@ void insertToTable(char *name, int type, int regNum, int isArray, int dimension,
             HashTable[curIndex] -> dim[i][0] = dim[i][0];
             HashTable[curIndex] -> dim[i][1] = dim[i][1];
             
-            if (i==0){
+            if (i == 0){
                 space = dim[i][1] - dim[i][0] + 1;
             } else {
-                space = space * (dim[i][1] - dim[i][0] + 1);  //[2:4, 1:4]  
+                space = space * (dim[i][1] - dim[i][0] + 1);  //[0:3, 1:3, 1:3] -> 4 * 3 * 3  
             }
         }
-        wid = (type == 0) ? 1 : 4; // char: 1, int: 4
+        wid = (type == 0) ? 1 : 4;  // char: 1, int: 4
         space = space * wid;
-        globalOffset += space;
-
         HashTable[curIndex] -> space = space;
+
+        globalOffset += space;  // for next array start position in memory
     } else{
+        // scalar
         HashTable[curIndex] -> regNum = regNum;
     }
 }
@@ -105,9 +112,9 @@ void insertToTable(char *name, int type, int regNum, int isArray, int dimension,
 char* printType(int type){
     switch (type) { 
         case 0: 
-            return "char";	
+            return "CHAR";	
         case 1: 
-            return "integer"; 
+            return "INT"; 
         default: 
             printf("some error in type \n");
             return "";
@@ -126,6 +133,7 @@ void printTable() {
                 printf("[");
                 int j;
         
+                // print each dimension
                 for(j=0; j<HashTable[i]->dimension; j++){
                     printf("%d:%d", HashTable[i]->dim[j][0], HashTable[i]->dim[j][1]);
                     if(j != HashTable[i]->dimension-1){
