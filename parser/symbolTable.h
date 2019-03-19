@@ -14,11 +14,11 @@ typedef struct {
   int isImme;
 } SymbolEntry;
 
-typedef struct{
-	int dimension;
-	SymbolEntry exprs[MAX_DIMENSION]
-	
-} SymbolEntries;
+typedef struct {
+  char *name;
+  int dimension;
+  SymbolEntry * indices[MAX_DIMENSION];
+} ExprsRef;
 
 
 extern void initTable();

@@ -114,7 +114,7 @@ Grammar
    82 Reference: NAME
    83          | NAME '[' Exprs ']'
 
-   84 Exprs: Expr ',' Exprs
+   84 Exprs: Exprs ',' Expr
    85      | Expr
 
 
@@ -1101,10 +1101,8 @@ state 77
 
    72 Expr: Expr . '+' Term
    73     | Expr . '-' Term
-   84 Exprs: Expr . ',' Exprs
-   85      | Expr .
+   85 Exprs: Expr .
 
-    ','  shift, and go to state 120
     '+'  shift, and go to state 64
     '-'  shift, and go to state 65
 
@@ -1114,7 +1112,9 @@ state 77
 state 78
 
    83 Reference: NAME '[' Exprs . ']'
+   84 Exprs: Exprs . ',' Expr
 
+    ','  shift, and go to state 120
     ']'  shift, and go to state 121
 
 
@@ -1592,18 +1592,17 @@ state 119
 
 state 120
 
-   84 Exprs: Expr ',' . Exprs
+   84 Exprs: Exprs ',' . Expr
 
     NAME       shift, and go to state 32
     NUMBER     shift, and go to state 33
     CHARCONST  shift, and go to state 34
     '('        shift, and go to state 36
 
-    Expr       go to state 77
+    Expr       go to state 154
     Term       go to state 38
     Factor     go to state 39
     Reference  go to state 40
-    Exprs      go to state 154
 
 
 state 121
@@ -1992,7 +1991,12 @@ state 153
 
 state 154
 
-   84 Exprs: Expr ',' Exprs .
+   72 Expr: Expr . '+' Term
+   73     | Expr . '-' Term
+   84 Exprs: Exprs ',' Expr .
+
+    '+'  shift, and go to state 64
+    '-'  shift, and go to state 65
 
     $default  reduce using rule 84 (Exprs)
 

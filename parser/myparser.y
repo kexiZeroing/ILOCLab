@@ -16,14 +16,14 @@ int globalLabel = 0;
 %error-verbose
 
 %union{
-	struct SymbolEntries *entries;
-    struct SymbolEntry *entry;
+  struct SymbolEntry *entry;
+	struct ExprsRef *exprsRef;
 	struct IfStructure *ifStructure;
 	struct WhileStructure *whileStructure;
 	struct ForStructure *forStructure;
-    int int_val;
-    char* string;
-    char char_val;
+	int int_val;
+	char* string;
+	char char_val;
 }
 
 %start Procedure
@@ -53,7 +53,7 @@ int globalLabel = 0;
 %token <char_val> CHARCONST
 
 %type <int_val> Type
-%type <entries> Exprs
+%type <exprsRef> Exprs
 %type <entry> Stmt Stmts Expr Reference Factor Term RelExpr Bool OrTerm AndTerm Bound Bounds
 %type <ifStructure> IFHead IFMid
 %type <whileStructure> WhileHead
@@ -85,7 +85,7 @@ Spec		: NAME {
 						yyerror("variable has been already declared.\n");
 					} else {
 						int dim[MAX_DIMENSION][2];
-						// insertToTable(char *name, int type, int regNum, int isArray, int offset, int dimension, int dim[MAX_DIMENSION][2]);
+						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 						insertToTable($1, CUR_TYPE, getNextRegister(), 0, -1, dim);
 					}
  				}
@@ -94,7 +94,7 @@ Spec		: NAME {
 						yyerror("variable has been already declared.\n");
 					} else {
 						SymbolEntry *node = $3;
-
+						
 						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim);
 					}
@@ -126,20 +126,25 @@ Bound		: NUMBER ':' NUMBER {
 Stmts		: Stmts Stmt 
 	 		| Stmt 
 	 		;
-Stmt      	: Reference '=' Expr ';' {
+Stmt    : Reference '=' Expr ';' {
 					SymbolEntry *node1 = $1;
 					SymbolEntry *node2 = $3;
-					if (node1 -> type == 0){
-						// char
-						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
-					} else{
-						// int
-						if (node2 -> isImme) {
-							emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
-						}else {
-							emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+					if(node1 -> isArray == 0){
+						if (node1 -> type == 0){
+							// char
+							emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
+						} else{
+							// int
+							if (node2 -> isImme) {
+								emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
+							}else {
+								emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+							}
 						}
+					}else {
+							emit(NOLABEL, _STOREAI, node2->regNum, node1->regNum, node1->offset);
 					}
+
 				}
 			| '{' Stmts '}'
 			| IFHead THEN Stmt {
@@ -578,7 +583,22 @@ Term		: Term '*' Factor {
 			;
 Factor		: '(' Expr ')' 
          	| Reference {
-					$$ = $1;
+							SymbolEntry * node = $1;
+							if(node -> isArray){
+								SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+								resNode -> regNum = getNextRegister();
+								
+								if(node -> type == 0){
+									// byte
+									emit(NOLABEL, _CLOADAI, node -> regNum, node -> offset, resNode -> regNum);
+								} else {
+									// word
+									emit(NOLABEL, _LOADAI, node -> regNum, node -> offset, resNode -> regNum);
+								}
+								$$ = resNode;
+							}else {
+								$$ = $1;
+							}	
 				}
 	  		| NUMBER {
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -602,42 +622,64 @@ Reference 	: NAME {
 						$$ = node;
 					}
 				}
-          	| NAME '[' Exprs ']' {
+        | NAME '[' Exprs ']' {
 				  	SymbolEntry * node = lookupTable($1);
-				    if (node == NULL){
-						yyerror("Variable has not beed declared\n");
-					} else{
-						$$ = node;
-					}
-					int i;
-					for(i=0; i<$2->dimension; i++){
-						SymbolEntry * expr = $2->exprs[i];
-						// ....
-					}
-				}
-			;
-// Exprs     	: Expr ',' Exprs 
-Exprs     	: Exprs ',' Expr {
-				SymbolEntries * ptr = $1;
-				int dim = ptr->dimension ++;
-				ptr->dimension = dim;
-				if (dim > MAX_DIMENSION) {
-					// ... error
-				}
-				ptr->exprs[dim - 1] = $3;
-				$$ = ptr;
-			}
-          	| Expr {
-				SymbolEntries * ptr = malloc(sizeof(SymbolEntries));
-				ptr->dimension = 1;
-				ptr->exprs[0] = $1;
+						if (node == NULL){
+							yyerror("Variable has not beed declared\n");
+						} else{
+							SymbolEntry * offsetNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+							offsetNode->regNum = getNextRegister();
+							SymbolEntry * accNode = (SymbolEntry*) malloc(sizeof(SymbolEntry));
+							accNode->regNum = getNextRegister();
+							SymbolEntry * dimOffsetNode = (SymbolEntry*) malloc(sizeof(SymbolEntry));
+							dimOffsetNode->regNum = getNextRegister();
 
-					// SymbolEntry * node = $1;
-					// if(node2 -> isImme) {
-					// 	$$ = $1;
-				  	// }
-					
-			  	}
+							ExprsRef *exprsNode = $3;
+
+							int i;
+							for(i = 0; i < node->dimension; i++){
+								if(exprsNode->indices[i] -> isImme) {
+									SymbolEntry * tmp = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+									tmp -> regNum = getNextRegister();
+									emit(NOLABEL, _LOADI, exprsNode->indices[i] -> regNum, tmp->regNum, EMPTY);
+									exprsNode->indices[i] = tmp;
+								}
+								emit(NOLABEL, _SUBI, exprsNode->indices[i]->regNum, node->dim[i][0], dimOffsetNode->regNum);
+
+								if(i == 0){
+										emit(NOLABEL, _LOADI, node->dim[0][1] - node->dim[0][0] + 1, accNode->regNum, EMPTY);
+										emit(NOLABEL, _I2I, dimOffsetNode->regNum, offsetNode->regNum, EMPTY);
+								} else {
+									  emit(NOLABEL, _MULT, dimOffsetNode->regNum, accNode->regNum, dimOffsetNode->regNum);
+										emit(NOLABEL, _ADD, dimOffsetNode->regNum, offsetNode->regNum, offsetNode->regNum);
+										emit(NOLABEL, _MULTI, accNode->regNum, node->dim[i][1] - node->dim[i][0] + 1, accNode->regNum);
+								}
+							}
+							
+							if(node->type == 1){
+									emit(NOLABEL, _MULTI, offsetNode->regNum, 4, offsetNode->regNum);
+							}
+							
+							$$ = offsetNode;
+						}
+					}
+				;
+// Exprs    : Expr ',' Exprs 
+Exprs     	: Exprs ',' Expr {
+								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
+								node -> indices[node->dimension] = $3;
+								node -> dimension++;
+
+								$$ = node;
+							}
+          	| Expr {
+								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
+								node -> dimension = 0;
+								node -> indices[node->dimension] = $1;
+								node -> dimension++;
+
+								$$ = node;
+			  		}
 			;
 
 %%                    

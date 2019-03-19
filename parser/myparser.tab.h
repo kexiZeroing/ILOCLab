@@ -98,16 +98,17 @@
 typedef union YYSTYPE
 #line 18 "myparser.y"
 {
-    struct SymbolEntry *entry;
+  struct SymbolEntry *entry;
+	struct ExprsRef *exprsRef;
 	struct IfStructure *ifStructure;
 	struct WhileStructure *whileStructure;
 	struct ForStructure *forStructure;
-    int int_val;
-    char* string;
-    char char_val;
+	int int_val;
+	char* string;
+	char char_val;
 }
 /* Line 1529 of yacc.c.  */
-#line 111 "myparser.tab.h"
+#line 112 "myparser.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

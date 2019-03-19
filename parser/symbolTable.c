@@ -85,6 +85,7 @@ void insertToTable(char *name, int type, int regNum, int isArray, int dimension,
         for (i = 0; i < dimension; i++) {
             HashTable[curIndex] -> dim[i][0] = dim[i][0];
             HashTable[curIndex] -> dim[i][1] = dim[i][1];
+            
             if (i==0){
                 space = dim[i][1] - dim[i][0] + 1;
             } else {
@@ -118,10 +119,29 @@ void printTable() {
     int i;
     for(i=0; i < HASH_TABLE_SIZE; i++){
         if(HashTable[i] != NULL) {
+            // print array
             if(HashTable[i] -> isArray) {
-                printf("(Name:%s, Type:%s, Address:%d, dimensions:)\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->offset); 
-            } else {
-                printf("(Name:%s, Type:%s, Address:r%d, dimensions:)\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->regNum); 
+                printf("\nName:%s, Type:%s, Address:%d, dimensions:%d, dim:", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->offset, HashTable[i]->dimension); 
+                // [1:4,0:3]
+                printf("[");
+                int j;
+        
+                for(j=0; j<HashTable[i]->dimension; j++){
+                    printf("%d:%d", HashTable[i]->dim[j][0], HashTable[i]->dim[j][1]);
+                    if(j != HashTable[i]->dimension-1){
+                        printf(", ");
+                    }
+                }
+                printf("]");
+            } 
+        }
+    }
+    printf("\n");
+    for(i=0; i < HASH_TABLE_SIZE; i++){ 
+        if(HashTable[i] != NULL) {
+             // print single variable
+            if(!HashTable[i] -> isArray) {
+                printf("\nName:%s, Type:%s, Address:r%d, dimensions:/\n", HashTable[i]->name, printType(HashTable[i]->type), HashTable[i]->regNum); 
             }
         }
     }
