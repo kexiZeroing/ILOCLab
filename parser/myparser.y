@@ -93,7 +93,7 @@ Spec		: NAME {
 					if (lookupTable($1) != NULL){
 						yyerror("variable has been already declared.\n");
 					} else {
-						SymbolEntry *node = $3;
+						SymbolEntry *node = (SymbolEntry*)$3;
 
 						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim);
@@ -101,8 +101,8 @@ Spec		: NAME {
 				}
 			;
 Bounds		: Bounds ',' Bound {  
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 
 					node1->dim[node1->dimension][0] = node2->dim[0][0];
 					node1->dim[node1->dimension][1] = node2->dim[0][1];
@@ -127,8 +127,8 @@ Stmts		: Stmts Stmt
 	 		| Stmt 
 	 		;
 Stmt    : Reference '=' Expr ';' {
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node1 -> isArray == 0){
 						if (node1 -> type == 0){
 							// char
@@ -148,16 +148,16 @@ Stmt    : Reference '=' Expr ';' {
 				}
 			| '{' Stmts '}'
 			| IFHead THEN Stmt {
-					IfStructure *ifNode = $1;
+					IfStructure *ifNode = (IfStructure*)$1;
 					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
 				}
           	| IFMid Stmt {
-				  	IfStructure *ifNode = $1;
+				  	IfStructure *ifNode = (IfStructure*)$1;
 					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
 					emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
 			  	}
 			| WhileHead '(' Bool ')' {
-					WhileStructure *whileNode = $1;
+					WhileStructure *whileNode = (WhileStructure*)$1;
 					SymbolEntry *node = $3;
 
 					// body part
@@ -165,7 +165,7 @@ Stmt    : Reference '=' Expr ';' {
 					emit(whileNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);  
 				} '{' Stmts '}' {
 					// exit part
-					WhileStructure *whileNode = $1;
+					WhileStructure *whileNode = (WhileStructure*)$1;
 					emit(NOLABEL, _BR, whileNode->firstLabel, EMPTY, EMPTY);
 					emit(whileNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
 				}
@@ -182,24 +182,36 @@ Stmt    : Reference '=' Expr ';' {
 					emit(NOLABEL, _BR, forNode->firstLabel, EMPTY, EMPTY);
 					emit(forNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
 				}
-			| READ Reference ';'
-			| WRITE Expr ';' {
-					SymbolEntry *node = $2;
-					if(node -> isArray){
-							int baseReg = getNextRegister();
-							int resReg = getNextRegister();
-							emit(NOLABEL, _LOADI, node->offset, baseReg, EMPTY);
-							emit(NOLABEL, _ADD, node->regNum, baseReg, node->regNum);
-						  emit(NOLABEL, _LOAD, node->regNum, resReg, EMPTY);
-							emit(NOLABEL, _WRITE, resReg, EMPTY, EMPTY);
-					}else {
-						if (node -> type == 0){
-							// char
-							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
-						} else{
-							// int
-							emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+			| READ Reference ';' {
+					SymbolEntry *refNode = (SymbolEntry*)$2;
+
+					SymbolEntry *resNode = malloc(sizeof(SymbolEntry));
+					resNode->regNum = getNextRegister();
+		
+					if(refNode -> isArray == 0){
+						if(refNode->type == 0){
+							emit(NOLABEL, _CREAD, refNode->regNum, EMPTY, EMPTY);
+						}else {
+							emit(NOLABEL, _READ, refNode->regNum, EMPTY, EMPTY);
 						}
+					}else {
+						if(refNode->type == 0){
+							emit(NOLABEL, _CREAD, resNode->regNum, EMPTY, EMPTY);
+							emit(NOLABEL, _CSTOREAI, resNode->regNum, refNode->regNum, refNode->offset);
+						}else {
+							emit(NOLABEL, _READ, resNode->regNum, EMPTY, EMPTY);
+							emit(NOLABEL, _STOREAI, resNode->regNum, refNode->regNum, refNode->offset);
+						}
+					}					
+				}
+			| WRITE Expr ';' {
+					SymbolEntry *node = (SymbolEntry*)$2;
+					if (node -> type == 0){
+						// char
+						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+					} else{
+						// int
+						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
 					}
 				}
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
@@ -220,7 +232,7 @@ ForHead		: FOR NAME '=' Expr TO Expr {
 					forNode->thirdLabel = getNextLabel();
 
 					// init assign
-					SymbolEntry *initNode = $4;
+					SymbolEntry *initNode = (SymbolEntry*)$4;
 
 					SymbolEntry *nameNode = lookupTable($2);
 					if (nameNode == NULL){
@@ -235,7 +247,7 @@ ForHead		: FOR NAME '=' Expr TO Expr {
 
 					// compare
 					int tmpReg1 = getNextRegister();
-					SymbolEntry *resultNode = $6;
+					SymbolEntry *resultNode = (SymbolEntry*)$6;
 
 					if (resultNode -> isImme) {
 						emit(NOLABEL, _LOADI, resultNode->regNum, tmpReg1, EMPTY);
@@ -285,8 +297,8 @@ WhileHead   : WHILE  {
 			;
 WithElse	: IFMid WithElse 
 			| Reference '=' Expr ';' {
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if (node1 -> type == 0){
 						// char
 						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
@@ -304,7 +316,7 @@ WithElse	: IFMid WithElse
 			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
 			| READ Reference ';'
 			| WRITE Expr ';' {
-					SymbolEntry *node = $2;
+					SymbolEntry *node = (SymbolEntry*)$2;
 						if (node -> type == 0){
 							// char
 							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
@@ -325,7 +337,7 @@ WithElse	: IFMid WithElse
 			; 
 Bool      	: NOT OrTerm {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $2;
+					SymbolEntry *node1 = (SymbolEntry*)$2;
 					emit(NOLABEL, _NOT, node1->regNum, tmpReg, EMPTY);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -338,8 +350,8 @@ Bool      	: NOT OrTerm {
 			;
 OrTerm		: OrTerm OR AndTerm {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					emit(NOLABEL, _OR, node1->regNum, node2->regNum, tmpReg);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -352,8 +364,8 @@ OrTerm		: OrTerm OR AndTerm {
 			;
 AndTerm   	: AndTerm AND RelExpr {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					emit(NOLABEL, _AND, node1->regNum, node2->regNum, tmpReg);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -365,14 +377,14 @@ AndTerm   	: AndTerm AND RelExpr {
 			  }
 			;
 RelExpr 	: RelExpr LT Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -387,14 +399,14 @@ RelExpr 	: RelExpr LT Expr {
 					$$ = node;
 				}
         	| RelExpr LE Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -409,14 +421,14 @@ RelExpr 	: RelExpr LT Expr {
 					$$ = node;
 			}
         	| RelExpr EQ Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -431,14 +443,14 @@ RelExpr 	: RelExpr LT Expr {
 					$$ = node;
 				}
         	| RelExpr NE Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -453,14 +465,14 @@ RelExpr 	: RelExpr LT Expr {
 					$$ = node;
 				}
         	| RelExpr GE Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -474,14 +486,14 @@ RelExpr 	: RelExpr LT Expr {
 					$$ = node;
 				}
         	| RelExpr GT Expr {
-					SymbolEntry *node1 = $1;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -502,8 +514,8 @@ RelExpr 	: RelExpr LT Expr {
 			;
 Expr		: Expr '+' Term {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 
 					// differentiate by immediate value or register
 					if(node1 -> isImme && node2 -> isImme) {
@@ -517,12 +529,13 @@ Expr		: Expr '+' Term {
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					$$ = node;
 				}
 			| Expr '-' Term  {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 					
 					// 'a-1' use subI; '1-a' use sub (loadI first)
 					if(node1 -> isImme && node2 -> isImme) {
@@ -540,6 +553,7 @@ Expr		: Expr '+' Term {
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
 					$$ = node;
+					node -> type = node1 -> type;
 				}
 			| Term {
 					$$ = $1;
@@ -547,8 +561,8 @@ Expr		: Expr '+' Term {
 			;
 Term		: Term '*' Factor {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 
 					// same as add
 					if(node1 -> isImme && node2 -> isImme) {
@@ -562,12 +576,13 @@ Term		: Term '*' Factor {
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					$$ = node;
 				}
 			| Term '/' Factor {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = $1;
-					SymbolEntry *node2 = $3;
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 
 					// same as sub
 					if(node1 -> isImme && node2 -> isImme) {
@@ -584,6 +599,7 @@ Term		: Term '*' Factor {
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					$$ = node;
 				}
 			| Factor {
@@ -592,7 +608,7 @@ Term		: Term '*' Factor {
 			;
 Factor		: '(' Expr ')' 
          	| Reference {
-							SymbolEntry * node = $1;
+							SymbolEntry * node = (SymbolEntry *) $1;
 							if(node -> isArray){
 								SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 								resNode -> regNum = getNextRegister();

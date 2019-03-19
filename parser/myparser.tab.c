@@ -510,12 +510,12 @@ static const yytype_uint16 yyrline[] =
        0,    64,    64,    65,    66,    68,    69,    70,    71,    72,
       73,    75,    77,    78,    80,    81,    83,    92,   103,   113,
      117,   126,   127,   129,   149,   150,   154,   159,   159,   172,
-     185,   186,   205,   206,   207,   208,   210,   211,   212,   213,
-     215,   256,   263,   276,   286,   287,   302,   303,   304,   305,
-     306,   316,   317,   318,   319,   321,   322,   323,   324,   326,
-     335,   339,   349,   353,   363,   367,   389,   411,   433,   455,
-     476,   498,   501,   503,   522,   544,   548,   567,   589,   593,
-     594,   612,   618,   626,   634,   678,   685
+     185,   207,   217,   218,   219,   220,   222,   223,   224,   225,
+     227,   268,   275,   288,   298,   299,   314,   315,   316,   317,
+     318,   328,   329,   330,   331,   333,   334,   335,   336,   338,
+     347,   351,   361,   365,   375,   379,   401,   423,   445,   467,
+     488,   510,   513,   515,   535,   558,   562,   582,   605,   609,
+     610,   628,   634,   642,   650,   694,   701
 };
 #endif
 
@@ -1624,7 +1624,7 @@ yyreduce:
 					if (lookupTable((yyvsp[(1) - (4)].string)) != NULL){
 						yyerror("variable has been already declared.\n");
 					} else {
-						SymbolEntry *node = (yyvsp[(3) - (4)].entry);
+						SymbolEntry *node = (SymbolEntry*)(yyvsp[(3) - (4)].entry);
 
 						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 						insertToTable((yyvsp[(1) - (4)].string), CUR_TYPE, -1, 1, node->dimension, node->dim);
@@ -1635,8 +1635,8 @@ yyreduce:
   case 18:
 #line 103 "myparser.y"
     {  
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 
 					node1->dim[node1->dimension][0] = node2->dim[0][0];
 					node1->dim[node1->dimension][1] = node2->dim[0][1];
@@ -1668,8 +1668,8 @@ yyreduce:
   case 23:
 #line 129 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (4)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (4)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (4)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (4)].entry);
 					if(node1 -> isArray == 0){
 						if (node1 -> type == 0){
 							// char
@@ -1692,7 +1692,7 @@ yyreduce:
   case 25:
 #line 150 "myparser.y"
     {
-					IfStructure *ifNode = (yyvsp[(1) - (3)].ifStructure);
+					IfStructure *ifNode = (IfStructure*)(yyvsp[(1) - (3)].ifStructure);
 					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
 				;}
     break;
@@ -1700,7 +1700,7 @@ yyreduce:
   case 26:
 #line 154 "myparser.y"
     {
-				  	IfStructure *ifNode = (yyvsp[(1) - (2)].ifStructure);
+				  	IfStructure *ifNode = (IfStructure*)(yyvsp[(1) - (2)].ifStructure);
 					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
 					emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
 			  	;}
@@ -1709,7 +1709,7 @@ yyreduce:
   case 27:
 #line 159 "myparser.y"
     {
-					WhileStructure *whileNode = (yyvsp[(1) - (4)].whileStructure);
+					WhileStructure *whileNode = (WhileStructure*)(yyvsp[(1) - (4)].whileStructure);
 					SymbolEntry *node = (yyvsp[(3) - (4)].entry);
 
 					// body part
@@ -1722,7 +1722,7 @@ yyreduce:
 #line 166 "myparser.y"
     {
 					// exit part
-					WhileStructure *whileNode = (yyvsp[(1) - (8)].whileStructure);
+					WhileStructure *whileNode = (WhileStructure*)(yyvsp[(1) - (8)].whileStructure);
 					emit(NOLABEL, _BR, whileNode->firstLabel, EMPTY, EMPTY);
 					emit(whileNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
 				;}
@@ -1745,72 +1745,89 @@ yyreduce:
 				;}
     break;
 
-  case 31:
-#line 186 "myparser.y"
+  case 30:
+#line 185 "myparser.y"
     {
-					SymbolEntry *node = (yyvsp[(2) - (3)].entry);
-					if(node -> isArray){
-							int baseReg = getNextRegister();
-							int resReg = getNextRegister();
-							emit(NOLABEL, _LOADI, node->offset, baseReg, EMPTY);
-							emit(NOLABEL, _ADD, node->regNum, baseReg, node->regNum);
-						  emit(NOLABEL, _LOAD, node->regNum, resReg, EMPTY);
-							emit(NOLABEL, _WRITE, resReg, EMPTY, EMPTY);
-					}else {
-						if (node -> type == 0){
-							// char
-							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
-						} else{
-							// int
-							emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+					SymbolEntry *refNode = (SymbolEntry*)(yyvsp[(2) - (3)].entry);
+
+					SymbolEntry *resNode = malloc(sizeof(SymbolEntry));
+					resNode->regNum = getNextRegister();
+		
+					if(refNode -> isArray == 0){
+						if(refNode->type == 0){
+							emit(NOLABEL, _CREAD, refNode->regNum, EMPTY, EMPTY);
+						}else {
+							emit(NOLABEL, _READ, refNode->regNum, EMPTY, EMPTY);
 						}
+					}else {
+						if(refNode->type == 0){
+							emit(NOLABEL, _CREAD, resNode->regNum, EMPTY, EMPTY);
+							emit(NOLABEL, _CSTOREAI, resNode->regNum, refNode->regNum, refNode->offset);
+						}else {
+							emit(NOLABEL, _READ, resNode->regNum, EMPTY, EMPTY);
+							emit(NOLABEL, _STOREAI, resNode->regNum, refNode->regNum, refNode->offset);
+						}
+					}					
+				;}
+    break;
+
+  case 31:
+#line 207 "myparser.y"
+    {
+					SymbolEntry *node = (SymbolEntry*)(yyvsp[(2) - (3)].entry);
+					if (node -> type == 0){
+						// char
+						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+					} else{
+						// int
+						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
 					}
 				;}
     break;
 
   case 32:
-#line 205 "myparser.y"
+#line 217 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 33:
-#line 206 "myparser.y"
+#line 218 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 34:
-#line 207 "myparser.y"
+#line 219 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 35:
-#line 208 "myparser.y"
+#line 220 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 36:
-#line 210 "myparser.y"
+#line 222 "myparser.y"
     { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; ;}
     break;
 
   case 37:
-#line 211 "myparser.y"
+#line 223 "myparser.y"
     { yyerror("unexpected NAME. No such reserved word"); yyclearin; ;}
     break;
 
   case 38:
-#line 212 "myparser.y"
+#line 224 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 39:
-#line 213 "myparser.y"
+#line 225 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 40:
-#line 215 "myparser.y"
+#line 227 "myparser.y"
     {
 					// allocation
 					ForStructure *forNode = malloc(sizeof(ForStructure));
@@ -1819,7 +1836,7 @@ yyreduce:
 					forNode->thirdLabel = getNextLabel();
 
 					// init assign
-					SymbolEntry *initNode = (yyvsp[(4) - (6)].entry);
+					SymbolEntry *initNode = (SymbolEntry*)(yyvsp[(4) - (6)].entry);
 
 					SymbolEntry *nameNode = lookupTable((yyvsp[(2) - (6)].string));
 					if (nameNode == NULL){
@@ -1834,7 +1851,7 @@ yyreduce:
 
 					// compare
 					int tmpReg1 = getNextRegister();
-					SymbolEntry *resultNode = (yyvsp[(6) - (6)].entry);
+					SymbolEntry *resultNode = (SymbolEntry*)(yyvsp[(6) - (6)].entry);
 
 					if (resultNode -> isImme) {
 						emit(NOLABEL, _LOADI, resultNode->regNum, tmpReg1, EMPTY);
@@ -1854,7 +1871,7 @@ yyreduce:
     break;
 
   case 41:
-#line 256 "myparser.y"
+#line 268 "myparser.y"
     {
 				  	IfStructure *ifNode = (yyvsp[(1) - (4)].ifStructure);
 					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
@@ -1865,7 +1882,7 @@ yyreduce:
     break;
 
   case 42:
-#line 263 "myparser.y"
+#line 275 "myparser.y"
     { 
 					IfStructure *ifNode = malloc(sizeof(IfStructure));
 					ifNode->firstLabel = getNextLabel();
@@ -1881,7 +1898,7 @@ yyreduce:
     break;
 
   case 43:
-#line 276 "myparser.y"
+#line 288 "myparser.y"
     {
 					WhileStructure *whileNode = malloc(sizeof(WhileStructure));
 					whileNode->firstLabel = getNextLabel();
@@ -1894,10 +1911,10 @@ yyreduce:
     break;
 
   case 45:
-#line 287 "myparser.y"
+#line 299 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (4)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (4)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (4)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (4)].entry);
 					if (node1 -> type == 0){
 						// char
 						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
@@ -1913,9 +1930,9 @@ yyreduce:
     break;
 
   case 50:
-#line 306 "myparser.y"
+#line 318 "myparser.y"
     {
-					SymbolEntry *node = (yyvsp[(2) - (3)].entry);
+					SymbolEntry *node = (SymbolEntry*)(yyvsp[(2) - (3)].entry);
 						if (node -> type == 0){
 							// char
 							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
@@ -1927,51 +1944,51 @@ yyreduce:
     break;
 
   case 51:
-#line 316 "myparser.y"
+#line 328 "myparser.y"
     { yyerror("Empty statement list is not allowed"); yyclearin; ;}
     break;
 
   case 52:
-#line 317 "myparser.y"
+#line 329 "myparser.y"
     { yyerror("Empty statement in a list is not allowed"); yyclearin; ;}
     break;
 
   case 53:
-#line 318 "myparser.y"
+#line 330 "myparser.y"
     { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; ;}
     break;
 
   case 54:
-#line 319 "myparser.y"
+#line 331 "myparser.y"
     { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
 			;}
     break;
 
   case 55:
-#line 321 "myparser.y"
+#line 333 "myparser.y"
     { yyerror("can not make an assignment to write"); yyclearin; ;}
     break;
 
   case 56:
-#line 322 "myparser.y"
+#line 334 "myparser.y"
     { yyerror("No such reserved word"); yyclearin; ;}
     break;
 
   case 57:
-#line 323 "myparser.y"
+#line 335 "myparser.y"
     { yyerror("Missing semicolon ';' after assignment"); ;}
     break;
 
   case 58:
-#line 324 "myparser.y"
+#line 336 "myparser.y"
     { yyerror("Do not support this statement"); yyclearin; yyerrok; ;}
     break;
 
   case 59:
-#line 326 "myparser.y"
+#line 338 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(2) - (2)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(2) - (2)].entry);
 					emit(NOLABEL, _NOT, node1->regNum, tmpReg, EMPTY);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -1981,18 +1998,18 @@ yyreduce:
     break;
 
   case 60:
-#line 335 "myparser.y"
+#line 347 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 			  	;}
     break;
 
   case 61:
-#line 339 "myparser.y"
+#line 351 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					emit(NOLABEL, _OR, node1->regNum, node2->regNum, tmpReg);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -2002,18 +2019,18 @@ yyreduce:
     break;
 
   case 62:
-#line 349 "myparser.y"
+#line 361 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 63:
-#line 353 "myparser.y"
+#line 365 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					emit(NOLABEL, _AND, node1->regNum, node2->regNum, tmpReg);
 					
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
@@ -2023,23 +2040,23 @@ yyreduce:
     break;
 
   case 64:
-#line 363 "myparser.y"
+#line 375 "myparser.y"
     {
 				  (yyval.entry) = (yyvsp[(1) - (1)].entry);
 			  ;}
     break;
 
   case 65:
-#line 367 "myparser.y"
+#line 379 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2056,16 +2073,16 @@ yyreduce:
     break;
 
   case 66:
-#line 389 "myparser.y"
+#line 401 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2082,16 +2099,16 @@ yyreduce:
     break;
 
   case 67:
-#line 411 "myparser.y"
+#line 423 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2108,16 +2125,16 @@ yyreduce:
     break;
 
   case 68:
-#line 433 "myparser.y"
+#line 445 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2134,16 +2151,16 @@ yyreduce:
     break;
 
   case 69:
-#line 455 "myparser.y"
+#line 467 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2159,16 +2176,16 @@ yyreduce:
     break;
 
   case 70:
-#line 476 "myparser.y"
+#line 488 "myparser.y"
     {
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
 					if(node1 -> isImme) {
 						int reg1 = getNextRegister();
 						emit(NOLABEL, _LOADI, node1 -> regNum, reg1, EMPTY);
 						node1 -> regNum = reg1;
 					} 
 				
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					if(node2 -> isImme) {
 						int reg2 = getNextRegister();
 						emit(NOLABEL, _LOADI, node2 -> regNum, reg2, EMPTY);
@@ -2185,23 +2202,23 @@ yyreduce:
     break;
 
   case 71:
-#line 498 "myparser.y"
+#line 510 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 72:
-#line 501 "myparser.y"
+#line 513 "myparser.y"
     { yyerror("Forgot an equal '=' in RelExprssion"); ;}
     break;
 
   case 73:
-#line 503 "myparser.y"
+#line 515 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 
 					// differentiate by immediate value or register
 					if(node1 -> isImme && node2 -> isImme) {
@@ -2215,16 +2232,17 @@ yyreduce:
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					(yyval.entry) = node;
 				;}
     break;
 
   case 74:
-#line 522 "myparser.y"
+#line 535 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 					
 					// 'a-1' use subI; '1-a' use sub (loadI first)
 					if(node1 -> isImme && node2 -> isImme) {
@@ -2242,22 +2260,23 @@ yyreduce:
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
 					(yyval.entry) = node;
+					node -> type = node1 -> type;
 				;}
     break;
 
   case 75:
-#line 544 "myparser.y"
+#line 558 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 76:
-#line 548 "myparser.y"
+#line 562 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 
 					// same as add
 					if(node1 -> isImme && node2 -> isImme) {
@@ -2271,16 +2290,17 @@ yyreduce:
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					(yyval.entry) = node;
 				;}
     break;
 
   case 77:
-#line 567 "myparser.y"
+#line 582 "myparser.y"
     {
 					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (yyvsp[(1) - (3)].entry);
-					SymbolEntry *node2 = (yyvsp[(3) - (3)].entry);
+					SymbolEntry *node1 = (SymbolEntry*)(yyvsp[(1) - (3)].entry);
+					SymbolEntry *node2 = (SymbolEntry*)(yyvsp[(3) - (3)].entry);
 
 					// same as sub
 					if(node1 -> isImme && node2 -> isImme) {
@@ -2297,21 +2317,22 @@ yyreduce:
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
+					node -> type = node1 -> type;
 					(yyval.entry) = node;
 				;}
     break;
 
   case 78:
-#line 589 "myparser.y"
+#line 605 "myparser.y"
     {
 					(yyval.entry) = (yyvsp[(1) - (1)].entry);
 				;}
     break;
 
   case 80:
-#line 594 "myparser.y"
+#line 610 "myparser.y"
     {
-							SymbolEntry * node = (yyvsp[(1) - (1)].entry);
+							SymbolEntry * node = (SymbolEntry *) (yyvsp[(1) - (1)].entry);
 							if(node -> isArray){
 								SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 								resNode -> regNum = getNextRegister();
@@ -2331,7 +2352,7 @@ yyreduce:
     break;
 
   case 81:
-#line 612 "myparser.y"
+#line 628 "myparser.y"
     {
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> isImme = 1;
@@ -2341,7 +2362,7 @@ yyreduce:
     break;
 
   case 82:
-#line 618 "myparser.y"
+#line 634 "myparser.y"
     {
 				  	int tmpReg = getNextRegister();
 					emit(NOLABEL, _LOADI, (yyvsp[(1) - (1)].char_val), tmpReg, EMPTY);
@@ -2352,7 +2373,7 @@ yyreduce:
     break;
 
   case 83:
-#line 626 "myparser.y"
+#line 642 "myparser.y"
     {
 					SymbolEntry * node = lookupTable((yyvsp[(1) - (1)].string));
 					if (node == NULL){
@@ -2364,7 +2385,7 @@ yyreduce:
     break;
 
   case 84:
-#line 634 "myparser.y"
+#line 650 "myparser.y"
     {
 				  	SymbolEntry * node = lookupTable((yyvsp[(1) - (4)].string));
 						if (node == NULL){
@@ -2410,7 +2431,7 @@ yyreduce:
     break;
 
   case 85:
-#line 678 "myparser.y"
+#line 694 "myparser.y"
     {
 								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
 								node -> indices[node->dimension] = (yyvsp[(3) - (3)].entry);
@@ -2421,7 +2442,7 @@ yyreduce:
     break;
 
   case 86:
-#line 685 "myparser.y"
+#line 701 "myparser.y"
     {
 								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
 								node -> dimension = 0;
@@ -2434,7 +2455,7 @@ yyreduce:
 
 
 /* Line 1267 of yacc.c.  */
-#line 2438 "myparser.tab.c"
+#line 2459 "myparser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2648,7 +2669,7 @@ yyreturn:
 }
 
 
-#line 695 "myparser.y"
+#line 711 "myparser.y"
                     
  /* C code */
 
