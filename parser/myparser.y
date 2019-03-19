@@ -94,7 +94,7 @@ Spec		: NAME {
 						yyerror("variable has been already declared.\n");
 					} else {
 						SymbolEntry *node = $3;
-						
+
 						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
 						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim);
 					}
@@ -185,12 +185,21 @@ Stmt    : Reference '=' Expr ';' {
 			| READ Reference ';'
 			| WRITE Expr ';' {
 					SymbolEntry *node = $2;
-					if (node -> type == 0){
-						// char
-						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
-					} else{
-						// int
-						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+					if(node -> isArray){
+							int baseReg = getNextRegister();
+							int resReg = getNextRegister();
+							emit(NOLABEL, _LOADI, node->offset, baseReg, EMPTY);
+							emit(NOLABEL, _ADD, node->regNum, baseReg, node->regNum);
+						  emit(NOLABEL, _LOAD, node->regNum, resReg, EMPTY);
+							emit(NOLABEL, _WRITE, resReg, EMPTY, EMPTY);
+					}else {
+						if (node -> type == 0){
+							// char
+							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+						} else{
+							// int
+							emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+						}
 					}
 				}
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
@@ -296,13 +305,13 @@ WithElse	: IFMid WithElse
 			| READ Reference ';'
 			| WRITE Expr ';' {
 					SymbolEntry *node = $2;
-					if (node -> type == 0){
-						// char
-						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
-					} else{
-						// int
-						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
-					}
+						if (node -> type == 0){
+							// char
+							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+						} else{
+							// int
+							emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+						}
 				}
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
 			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
@@ -587,7 +596,7 @@ Factor		: '(' Expr ')'
 							if(node -> isArray){
 								SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 								resNode -> regNum = getNextRegister();
-								
+								resNode -> type = node -> type;
 								if(node -> type == 0){
 									// byte
 									emit(NOLABEL, _CLOADAI, node -> regNum, node -> offset, resNode -> regNum);
@@ -659,8 +668,9 @@ Reference 	: NAME {
 							if(node->type == 1){
 									emit(NOLABEL, _MULTI, offsetNode->regNum, 4, offsetNode->regNum);
 							}
-							
-							$$ = offsetNode;
+
+							node->regNum = offsetNode->regNum;
+							$$ = node;
 						}
 					}
 				;

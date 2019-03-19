@@ -132,7 +132,7 @@ void printTable() {
                         printf(", ");
                     }
                 }
-                printf("]");
+                printf("]\n");
             } 
         }
     }
