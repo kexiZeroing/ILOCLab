@@ -6,5 +6,10 @@ procedure main {
   int B[2:8];
 
   write 1;
+
+  one = 1;
+  if (one) then 
+    write 10;
+    else write 20;
 	
 }

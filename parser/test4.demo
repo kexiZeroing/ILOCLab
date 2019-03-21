@@ -6,9 +6,9 @@ procedure main {
   three = 3;
 
   if (one < two)
-     then if (one == 0)
-            then write one;
-            else write two;
+     then if (one == 0) 
+            then { write one ;}
+            else { write two ;}
      else write three;
 	
 }
