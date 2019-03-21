@@ -80,8 +80,8 @@ int main (int argc, char* argv[]) {
 	if (printHelp == 1){
         printf("========== Command help start ==========\n");
         printf("./demo -h: check command line syntax\n");
-        printf("./demo filename: compile target file\n");
-				printf("./demo -s filename: print symbol table\n");
+        printf("./demo filename: compile target file and generate .i file\n");
+				printf("./demo -s filename: print the symbol table\n");
         printf("./demo: compile from stdin, ^D to EOF\n");
 				printf("========== Command help end ==========\n");
 

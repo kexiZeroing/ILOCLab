@@ -12,4 +12,4 @@ lex.yy.c: myscanner.l myparser.tab.h
 	flex myscanner.l
 
 clean:
-	rm demo myparser.tab.c myparser.tab.h lex.yy.c test/*.i
+	rm demo myparser.tab.c myparser.tab.h lex.yy.c *.i test/*.i
