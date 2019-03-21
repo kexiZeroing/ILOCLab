@@ -17,25 +17,3 @@ extern int getNextRegister();
 extern int getNextLabel();
 
 extern void emit(int labelIdx, Opcode opcode, int addr1, int addr2, int addr3);  // 3 address ILOC
-
-// if structure
-typedef struct{
-	int firstLabel;
-	int secondLabel;
-	int thirdLabel;
-} IfStructure;
-
-// while structure
-typedef struct{
-	int firstLabel;
-	int secondLabel;
-    int thirdLabel;
-}WhileStructure;
-
-// for structure
-typedef struct{
-	int firstLabel;
-	int secondLabel;
-    int thirdLabel;
-	int regNum;  //for loop variable
-}ForStructure;

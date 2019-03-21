@@ -14,11 +14,43 @@ typedef struct {
   int isImme;    // 1 for immediate value
 } SymbolEntry;
 
+typedef SymbolEntry * SymbolEntryp;
+
 typedef struct {
   char *name;
   int dimension;
   SymbolEntry * indices[MAX_DIMENSION];   // index for each dimension
 } ExprsRef;
+
+typedef ExprsRef * ExprsRefp;
+
+// if structure
+typedef struct{
+	int firstLabel;
+	int secondLabel;
+	int thirdLabel;
+} IfStructure;
+
+typedef IfStructure * IfStructureptr;
+
+// while structure
+typedef struct{
+	int firstLabel;
+	int secondLabel;
+    int thirdLabel;
+} WhileStructure;
+
+typedef WhileStructure * WhileStructureptr;
+
+// for structure
+typedef struct{
+	int firstLabel;
+	int secondLabel;
+    int thirdLabel;
+	int regNum;  //for loop variable
+} ForStructure;
+
+typedef ForStructure * ForStructureptr;
 
 extern void initTable();
 

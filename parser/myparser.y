@@ -17,11 +17,12 @@ int globalLabel = 0;
 
 // type for non-terminal structure
 %union{
-  struct SymbolEntry *entry;
-	struct ExprsRef *exprsRef;
-	struct IfStructure *ifStructure;
-	struct WhileStructure *whileStructure;
-	struct ForStructure *forStructure;
+    //struct SymbolEntry *entry;
+	SymbolEntryp entry;
+	ExprsRefp exprsRef;
+	IfStructureptr ifStructure;
+	WhileStructureptr whileStructure;
+	ForStructureptr forStructure;
 	char* string;
 	int int_val;
 	char char_val;
@@ -257,7 +258,9 @@ NonIf    : Reference '=' Expr ';' {
 						emit(NOLABEL, _WRITE, tmpReg, EMPTY, EMPTY);
 					}
 				}
-			| '{' Stmts '}'
+			| '{' Stmts '}' {
+						$$ = $2;
+				}
 			;
 ForHead		: FOR NAME '=' Expr TO Expr {
 					// allocation
@@ -306,7 +309,7 @@ IFHead      : IF '(' Bool ')' {
 					ifNode->secondLabel = getNextLabel();
 					ifNode->thirdLabel = getNextLabel();
 
-					SymbolEntry *node = $3;
+					SymbolEntry *node = (SymbolEntry *)$3;
 
 					emit(NOLABEL, _CBR, node->regNum, ifNode->firstLabel, ifNode->secondLabel);
 					emit(ifNode->firstLabel, NOP, EMPTY, EMPTY, EMPTY);
@@ -314,7 +317,7 @@ IFHead      : IF '(' Bool ')' {
 				} 
 			;
 IFMid		: IFHead THEN WithElse ELSE {
-				  	IfStructure *ifNode = $1;
+				  	IfStructure *ifNode = (IfStructure *) $1;
 						emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
 						emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
 						$$ = ifNode;
@@ -617,7 +620,9 @@ Term		: Term '*' Factor {
 					$$ = $1;
 				}
 			;
-Factor		: '(' Expr ')'
+Factor		: '(' Expr ')' {
+					$$ = $2;
+				}
          	| Reference {
 							SymbolEntry * node = (SymbolEntry *) $1;
 
