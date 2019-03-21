@@ -110,6 +110,7 @@ int main (int argc, char* argv[]) {
 			printTable();
 		}
 	} else {
+		remove(outputName);   // don't generate iloc file if parse failed
 		printf("Parser fails. Total number of errors: %d\n", errorCount);
 	}
 	return 0;

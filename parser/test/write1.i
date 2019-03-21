@@ -1,18 +1,16 @@
 	 read 	=> r0
 	 loadI 2 	=> r1 
 	 loadI 2 	=> r6 
-	 subI r6, 0 	=> r5 
-	 loadI 10 	=> r4 
-	 i2i r5 	=> r3 
+	 subI r6, 0 	=> r4 
+	 i2i r4 	=> r3 
 	 multI r3, 4 	=> r3 
 	 read 	=> r7
 	 storeAI r7 	=> r3, 0 
 	 write 	 r0
 	 write 	 r1
 	 loadI 2 	=> r13 
-	 subI r13, 0 	=> r12 
-	 loadI 10 	=> r11 
-	 i2i r12 	=> r10 
+	 subI r13, 0 	=> r11 
+	 i2i r11 	=> r10 
 	 multI r10, 4 	=> r10 
 	 loadAI r10, 0 	=> r14 
 	 write 	 r14

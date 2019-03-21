@@ -1,5 +1,6 @@
 procedure main {
   int one, two, three;
+  int a;
 
   one = 1;
   two = 2;
@@ -8,7 +9,10 @@ procedure main {
   if (one < two)
      then if (one == 0)
             then write one;
-            else write two;
+            else {
+                a = 11;
+                write a;
+            }
      else write three;
 	
 }

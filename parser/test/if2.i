@@ -12,6 +12,8 @@ L3:	 nop
 	 br 	-> L5
 L4:	 nop 
 	 write 	 r1
+	 br 	-> L5
+L5:	 nop 
 	 br 	-> L2
 L1:	 nop 
 	 write 	 r2

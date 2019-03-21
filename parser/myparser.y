@@ -6,7 +6,7 @@
 extern int yylineno;
 extern int errorCount;
 
-int CUR_TYPE; // 0 for char, 1 for int
+int CUR_TYPE;  // 0 for char, 1 for int
 int globalOffset = 0;
 int globalReg = 0;
 int globalLabel = 0;
@@ -15,14 +15,15 @@ int globalLabel = 0;
 /* Bison declarations */
 %error-verbose
 
+// type for non-terminal structure
 %union{
   struct SymbolEntry *entry;
 	struct ExprsRef *exprsRef;
 	struct IfStructure *ifStructure;
 	struct WhileStructure *whileStructure;
 	struct ForStructure *forStructure;
-	int int_val;
 	char* string;
+	int int_val;
 	char char_val;
 }
 
@@ -52,12 +53,11 @@ int globalLabel = 0;
 %token <int_val> NUMBER
 %token <char_val> CHARCONST
 
-%type <int_val> Type
-%type <exprsRef> Exprs
-%type <entry> Stmt Stmts Expr Reference Factor Term RelExpr Bool OrTerm AndTerm Bound Bounds
+%type <entry> Stmt Stmts Expr Reference Factor Term RelExpr Bool OrTerm AndTerm Bound Bounds WithElse NonIf
 %type <ifStructure> IFHead IFMid
 %type <whileStructure> WhileHead
 %type <forStructure> ForHead
+%type <exprsRef> Exprs
 
 /* productions and actions */
 %%
@@ -81,6 +81,7 @@ SpecList	: SpecList ',' Spec
 			| Spec 
 			;
 Spec		: NAME { 
+					// error for duplicate variable name
 					if (lookupTable($1) != NULL){
 						yyerror("variable has been already declared.\n");
 					} else {
@@ -94,9 +95,9 @@ Spec		: NAME {
 						yyerror("variable has been already declared.\n");
 					} else {
 						SymbolEntry *node = (SymbolEntry*)$3;
-
-						// insertToTable(char *name, int type, int regNum, int isArray, int dimension, int dim[MAX_DIMENSION][2]);
-						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim);
+						// node->dim has the information about the bound of array
+						// if a is array, use a = 1 will get r-1. So report error when reference array as a scalar
+						insertToTable($1, CUR_TYPE, -1, 1, node->dimension, node->dim); 
 					}
 				}
 			;
@@ -104,6 +105,9 @@ Bounds		: Bounds ',' Bound {
 					SymbolEntry *node1 = (SymbolEntry*)$1;
 					SymbolEntry *node2 = (SymbolEntry*)$3;
 
+					// accumulate dimension
+					// Bounds has already reduced for 1 dimension, add the next dimension from Bound info
+					// dim's first index just same as current $1's dimension
 					node1->dim[node1->dimension][0] = node2->dim[0][0];
 					node1->dim[node1->dimension][1] = node2->dim[0][1];
 					node1->dimension++;
@@ -115,8 +119,11 @@ Bounds		: Bounds ',' Bound {
 			  }
       		;
 Bound		: NUMBER ':' NUMBER {
+					// define the node that would be delivered up
 					SymbolEntry *node = malloc(sizeof(SymbolEntry));
 					node->dimension = 1;
+
+					// know the below and upper bound of one dimension here
 					node->dim[0][0] = $1;
 					node->dim[0][1] = $3;
 
@@ -126,48 +133,75 @@ Bound		: NUMBER ':' NUMBER {
 Stmts		: Stmts Stmt 
 	 		| Stmt 
 	 		;
-Stmt    : Reference '=' Expr ';' {
-					SymbolEntry *node1 = (SymbolEntry*)$1;
-					SymbolEntry *node2 = (SymbolEntry*)$3;
-					if(node1 -> isArray == 0){
-						if (node1 -> type == 0){
-							// char
-							emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
-						} else{
-							// int
-							if (node2 -> isImme) {
-								emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
-							}else {
-								emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
-							}
-						}
-					}else {
-							emit(NOLABEL, _STOREAI, node2->regNum, node1->regNum, node1->offset);
-					}
-
-				}
-			| '{' Stmts '}'
-			| IFHead THEN Stmt {
+Stmt    : IFHead THEN Stmt {
 					IfStructure *ifNode = (IfStructure*)$1;
 					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
 				}
-          	| IFMid Stmt {
-				  	IfStructure *ifNode = (IfStructure*)$1;
-					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
-					emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
+      | IFMid Stmt {
+						IfStructure *ifNode = (IfStructure*)$1;
+						emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+						emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
 			  	}
-			| WhileHead '(' Bool ')' {
-					WhileStructure *whileNode = (WhileStructure*)$1;
-					SymbolEntry *node = $3;
+			| NonIf
+			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
+			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
+			| Reference '+' '=' Expr ';' { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; } 
+			| Reference '=' Expr ';' ';' { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
+			}
+			| WRITE '=' Expr ';' { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; }
+			| NAME NAME ';' { yyerror("unexpected NAME. No such reserved word"); yyclearin; }
+			| error ';'  { yyerror("Do not support this statement"); yyclearin; yyerrok; }
+			;
+NonIf    : Reference '=' Expr ';' {
+					SymbolEntry *node1 = (SymbolEntry*)$1;
+					SymbolEntry *node2 = (SymbolEntry*)$3;
 
-					// body part
-					emit(NOLABEL, _CBR, node->regNum, whileNode->secondLabel, whileNode->thirdLabel);
-					emit(whileNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);  
-				} '{' Stmts '}' {
-					// exit part
-					WhileStructure *whileNode = (WhileStructure*)$1;
-					emit(NOLABEL, _BR, whileNode->firstLabel, EMPTY, EMPTY);
-					emit(whileNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
+					// error if b = 1 if b is array  -> already checked in reference
+
+					// if Expr is an array, it has been loaded in Factor
+					// if Reference is an array, use the regNum as offset in StoreAI
+					// store in memory
+					if(node1 -> isArray == 1) {
+							int tmpReg = getNextRegister();
+							// immediate value need to be loaded first
+							if (node2 -> isImme) {
+									emit(NOLABEL, _LOADI, node2->regNum, tmpReg, EMPTY);
+							}else{
+									emit(NOLABEL, _I2I, node2->regNum, tmpReg, EMPTY);
+							} 
+
+							// type CHAR use cstore
+							if(node1 -> type == 0){
+									emit(NOLABEL, _CSTOREAI, tmpReg, node1->regNum, node1->offset);
+							} else {
+									emit(NOLABEL, _STOREAI, tmpReg, node1->regNum, node1->offset);
+							}
+					}
+					// store in register
+					else {
+						if (node1 -> type == 0){
+								emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
+						} else{
+								if (node2 -> isImme) {
+									emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
+								}else {
+									emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
+								}
+						}
+					}
+				}
+				| WhileHead '(' Bool ')' {
+							WhileStructure *whileNode = (WhileStructure*)$1;
+							SymbolEntry *node = $3;
+
+							// body part
+							emit(NOLABEL, _CBR, node->regNum, whileNode->secondLabel, whileNode->thirdLabel);
+							emit(whileNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);  
+						} '{' Stmts '}' {
+							// exit part
+							WhileStructure *whileNode = (WhileStructure*)$1;
+							emit(NOLABEL, _BR, whileNode->firstLabel, EMPTY, EMPTY);
+							emit(whileNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);  
 				}
 			|  ForHead BY Expr '{' Stmts '}' {
 					ForStructure *forNode = $1;
@@ -194,6 +228,8 @@ Stmt    : Reference '=' Expr ';' {
 						}else {
 							emit(NOLABEL, _READ, refNode->regNum, EMPTY, EMPTY);
 						}
+
+					// array need be stored
 					}else {
 						if(refNode->type == 0){
 							emit(NOLABEL, _CREAD, resNode->regNum, EMPTY, EMPTY);
@@ -206,23 +242,22 @@ Stmt    : Reference '=' Expr ';' {
 				}
 			| WRITE Expr ';' {
 					SymbolEntry *node = (SymbolEntry*)$2;
+					int tmpReg = getNextRegister();
+
+					if(node -> isImme){
+							emit(NOLABEL, _LOADI, node->regNum, tmpReg, EMPTY);
+					} else {
+							tmpReg = node->regNum;
+					}
+
+					// CHAR is cwrite; INT is write
 					if (node -> type == 0){
-						// char
-						emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
+						emit(NOLABEL, _CWRITE, tmpReg, EMPTY, EMPTY);
 					} else{
-						// int
-						emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
+						emit(NOLABEL, _WRITE, tmpReg, EMPTY, EMPTY);
 					}
 				}
-			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
-			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
-			| Reference '+' '=' Expr ';' { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; } 
-			| Reference '=' Expr ';' ';' { yyerror("Unexpected semicolon. Empty statement is not allowed"); yyclearin; 
-			}
-			| WRITE '=' Expr ';' { yyerror("unexpected EQUALS, expecting CHARCONST or '(' or NAME or NUMBER, could not make an assignment to write"); yyclearin; }
-			| NAME NAME ';' { yyerror("unexpected NAME. No such reserved word"); yyclearin; }
-			| Reference '=' Expr error { yyerror("Missing semicolon ';' after assignment"); }
-			| error ';'  { yyerror("Do not support this statement"); yyclearin; yyerrok; }
+			| '{' Stmts '}'
 			;
 ForHead		: FOR NAME '=' Expr TO Expr {
 					// allocation
@@ -265,13 +300,6 @@ ForHead		: FOR NAME '=' Expr TO Expr {
 					$$ = forNode;
 				}
 			;
-IFMid		: IFHead THEN WithElse ELSE {
-				  	IfStructure *ifNode = $1;
-					emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
-					emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
-
-					$$ = ifNode;
-				}
 IFHead      : IF '(' Bool ')' { 
 					IfStructure *ifNode = malloc(sizeof(IfStructure));
 					ifNode->firstLabel = getNextLabel();
@@ -285,6 +313,13 @@ IFHead      : IF '(' Bool ')' {
 					$$ = ifNode;
 				} 
 			;
+IFMid		: IFHead THEN WithElse ELSE {
+				  	IfStructure *ifNode = $1;
+						emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+						emit(ifNode->secondLabel, NOP, EMPTY, EMPTY, EMPTY);
+						$$ = ifNode;
+				}
+				;
 WhileHead   : WHILE  {
 					WhileStructure *whileNode = malloc(sizeof(WhileStructure));
 					whileNode->firstLabel = getNextLabel();
@@ -295,36 +330,12 @@ WhileHead   : WHILE  {
 					$$ = whileNode;
 				}
 			;
-WithElse	: IFMid WithElse 
-			| Reference '=' Expr ';' {
-					SymbolEntry *node1 = (SymbolEntry*)$1;
-					SymbolEntry *node2 = (SymbolEntry*)$3;
-					if (node1 -> type == 0){
-						// char
-						emit(NOLABEL, _I2C, node2->regNum, node1->regNum, EMPTY);
-					} else{
-						// int
-						if (node2 -> isImme) {
-							emit(NOLABEL, _LOADI, node2->regNum, node1->regNum, EMPTY);
-						}else {
-							emit(NOLABEL, _I2I, node2->regNum, node1->regNum, EMPTY);
-						}
-					}
-				}
-			| '{' Stmts '}'
-			| WHILE '(' Bool ')' '{' Stmts '}' 
-			| FOR NAME '=' Expr TO Expr BY Expr '{' Stmts '}' 
-			| READ Reference ';'
-			| WRITE Expr ';' {
-					SymbolEntry *node = (SymbolEntry*)$2;
-						if (node -> type == 0){
-							// char
-							emit(NOLABEL, _CWRITE, node->regNum, EMPTY, EMPTY);
-						} else{
-							// int
-							emit(NOLABEL, _WRITE, node->regNum, EMPTY, EMPTY);
-						}
-				}
+WithElse	: IFMid WithElse{
+							IfStructure *ifNode = (IfStructure*)$1;
+							emit(NOLABEL, _BR, ifNode->thirdLabel, EMPTY, EMPTY);
+							emit(ifNode->thirdLabel, NOP, EMPTY, EMPTY, EMPTY);
+			  	}
+			| NonIf
 			| '{' '}' { yyerror("Empty statement list is not allowed"); yyclearin; }
 			| '{' ';' '}' { yyerror("Empty statement in a list is not allowed"); yyclearin; }
 			| Reference '+' '=' Expr ';' { yyerror("Do not support '+=', only use '=' in assignment"); yyclearin; } 
@@ -349,31 +360,31 @@ Bool      	: NOT OrTerm {
 			  	}
 			;
 OrTerm		: OrTerm OR AndTerm {
-					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (SymbolEntry*)$1;
-					SymbolEntry *node2 = (SymbolEntry*)$3;
-					emit(NOLABEL, _OR, node1->regNum, node2->regNum, tmpReg);
-					
-					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-					node -> regNum = tmpReg;
-					$$ = node;
+							int tmpReg = getNextRegister();
+							SymbolEntry *node1 = (SymbolEntry*)$1;
+							SymbolEntry *node2 = (SymbolEntry*)$3;
+							emit(NOLABEL, _OR, node1->regNum, node2->regNum, tmpReg);
+							
+							SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+							node -> regNum = tmpReg;
+							$$ = node;
 				}
         	| AndTerm {
-					$$ = $1;
+							$$ = $1;
 				}
 			;
 AndTerm   	: AndTerm AND RelExpr {
-					int tmpReg = getNextRegister();
-					SymbolEntry *node1 = (SymbolEntry*)$1;
-					SymbolEntry *node2 = (SymbolEntry*)$3;
-					emit(NOLABEL, _AND, node1->regNum, node2->regNum, tmpReg);
-					
-					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-					node -> regNum = tmpReg;
-					$$ = node;
+								int tmpReg = getNextRegister();
+								SymbolEntry *node1 = (SymbolEntry*)$1;
+								SymbolEntry *node2 = (SymbolEntry*)$3;
+								emit(NOLABEL, _AND, node1->regNum, node2->regNum, tmpReg);
+								
+								SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+								node -> regNum = tmpReg;
+								$$ = node;
 				}
           	| RelExpr {
-				  $$ = $1;
+				  			$$ = $1;
 			  }
 			;
 RelExpr 	: RelExpr LT Expr {
@@ -552,8 +563,8 @@ Expr		: Expr '+' Term {
 					}
 					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 					node -> regNum = tmpReg;
-					$$ = node;
 					node -> type = node1 -> type;
+					$$ = node;
 				}
 			| Term {
 					$$ = $1;
@@ -606,93 +617,137 @@ Term		: Term '*' Factor {
 					$$ = $1;
 				}
 			;
-Factor		: '(' Expr ')' 
+Factor		: '(' Expr ')'
          	| Reference {
 							SymbolEntry * node = (SymbolEntry *) $1;
-							if(node -> isArray){
-								SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-								resNode -> regNum = getNextRegister();
-								resNode -> type = node -> type;
-								if(node -> type == 0){
-									// byte
-									emit(NOLABEL, _CLOADAI, node -> regNum, node -> offset, resNode -> regNum);
-								} else {
-									// word
-									emit(NOLABEL, _LOADAI, node -> regNum, node -> offset, resNode -> regNum);
-								}
-								$$ = resNode;
+
+							// if ref is an array, need to load its offset (in regNum) first. 
+							// otherwise is a single variable, just deliver up the node
+							if(node -> isArray == 1){
+									SymbolEntry * resNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+									resNode -> regNum = getNextRegister();
+									resNode -> type = node -> type;
+									resNode -> name = node -> name;
+									resNode -> isArray = node -> isArray;
+
+									// get real offset by adding base and offset
+									if(node -> type == 0){
+										// byte
+										emit(NOLABEL, _CLOADAI, node -> regNum, node -> offset, resNode -> regNum);
+									} else {
+										// word
+										emit(NOLABEL, _LOADAI, node -> regNum, node -> offset, resNode -> regNum);
+									}
+									$$ = resNode;
 							}else {
-								$$ = $1;
+									$$ = $1;
 							}	
 				}
 	  		| NUMBER {
-					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-					node -> isImme = 1;
-					node -> regNum = $1;   // pseudo node
-					$$ = node;
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> isImme = 1;
+						node -> type = 1;
+						node -> regNum = $1;  // just use regNum to represent value if immediate is true
+						$$ = node;
 				} 
 	  		| CHARCONST {
-				  	int tmpReg = getNextRegister();
-					emit(NOLABEL, _LOADI, $1, tmpReg, EMPTY);
-					SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
-					node -> regNum = tmpReg;
-					$$ = node;
+						SymbolEntry * node = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
+						node -> regNum = getNextRegister();
+						node -> type = 0;
+						emit(NOLABEL, _LOADI, $1, node -> regNum, EMPTY);
+						$$ = node;
 			  	}
 	  		; 
 Reference 	: NAME {
 					SymbolEntry * node = lookupTable($1);
+					// use before declaration
 					if (node == NULL){
-						yyerror("Variable has not beed declared\n");
-					} else{
+						yyerror("Variable has not beed declared.\n");
+					} else if (node -> isArray == 1){
+						// need to check array or scalar, cannot use array without specifying subscript or use scalar with the subscript
+						// then deliver the information up
+						yyerror("Cannot use the varaible array referenced as a scalar.\n");
+					} else {
 						$$ = node;
 					}
 				}
         | NAME '[' Exprs ']' {
 				  	SymbolEntry * node = lookupTable($1);
+						ExprsRef *exprsNode = (ExprsRef *)$3;
+
 						if (node == NULL){
-							yyerror("Variable has not beed declared\n");
-						} else{
+								yyerror("Variable has not beed declared.\n");
+						} else if(node -> isArray == 0){
+							  // cannot be single varaible
+								yyerror("Cannot use the scalar varaible with subscript.\n");
+						} else if(node -> dimension != exprsNode -> dimension){
+								yyerror("Using varaible array's dimension is not same as the declaration.\n");
+						}	else {
+							// need to compute the real offset of the reference (spread in one dimension)
+
+							// the node need to be delivered up
 							SymbolEntry * offsetNode = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 							offsetNode->regNum = getNextRegister();
-							SymbolEntry * accNode = (SymbolEntry*) malloc(sizeof(SymbolEntry));
-							accNode->regNum = getNextRegister();
-							SymbolEntry * dimOffsetNode = (SymbolEntry*) malloc(sizeof(SymbolEntry));
-							dimOffsetNode->regNum = getNextRegister();
 
-							ExprsRef *exprsNode = $3;
+							int oneDimOffsetReg = getNextRegister();
+							int accDimReg = getNextRegister();
 
+							// compute the offset by column major order
+							// [2,a] -> (a-low2) * dim1 + (2-low1)
+							// [2,a,3] -> [(3-low3) * dim2 + (a-low2)]* dim1 + (2-low1) -> (3-low3) * dim2 * dim1 + (a-low2) * dim1 + (2-low1)
 							int i;
 							for(i = 0; i < node->dimension; i++){
+								// subscript is an immediate value, need loadI first
 								if(exprsNode->indices[i] -> isImme) {
 									SymbolEntry * tmp = (SymbolEntry*) malloc(sizeof(SymbolEntry)); 
 									tmp -> regNum = getNextRegister();
-									emit(NOLABEL, _LOADI, exprsNode->indices[i] -> regNum, tmp->regNum, EMPTY);
+									emit(NOLABEL, _LOADI, exprsNode->indices[i]->regNum, tmp->regNum, EMPTY);
 									exprsNode->indices[i] = tmp;
 								}
-								emit(NOLABEL, _SUBI, exprsNode->indices[i]->regNum, node->dim[i][0], dimOffsetNode->regNum);
+								// offset for each dimension
+								emit(NOLABEL, _SUBI, exprsNode->indices[i]->regNum, node->dim[i][0], oneDimOffsetReg);
 
 								if(i == 0){
-										emit(NOLABEL, _LOADI, node->dim[0][1] - node->dim[0][0] + 1, accNode->regNum, EMPTY);
-										emit(NOLABEL, _I2I, dimOffsetNode->regNum, offsetNode->regNum, EMPTY);
+									  if(node->dimension > 1) {
+											emit(NOLABEL, _LOADI, node->dim[0][1] - node->dim[0][0] + 1, accDimReg, EMPTY);
+										}
+										emit(NOLABEL, _I2I, oneDimOffsetReg, offsetNode->regNum, EMPTY);
 								} else {
-									  emit(NOLABEL, _MULT, dimOffsetNode->regNum, accNode->regNum, dimOffsetNode->regNum);
-										emit(NOLABEL, _ADD, dimOffsetNode->regNum, offsetNode->regNum, offsetNode->regNum);
-										emit(NOLABEL, _MULTI, accNode->regNum, node->dim[i][1] - node->dim[i][0] + 1, accNode->regNum);
+									  emit(NOLABEL, _MULT, oneDimOffsetReg, accDimReg, oneDimOffsetReg);
+										emit(NOLABEL, _ADD, oneDimOffsetReg, offsetNode->regNum, offsetNode->regNum);
+										if(i != node->dimension-1){
+											emit(NOLABEL, _MULTI, accDimReg, node->dim[i][1] - node->dim[i][0] + 1, accDimReg);
+										}
 								}
 							}
 							
+							// for type INT
 							if(node->type == 1){
-									emit(NOLABEL, _MULTI, offsetNode->regNum, 4, offsetNode->regNum);
+								emit(NOLABEL, _MULTI, offsetNode->regNum, 4, offsetNode->regNum);
 							}
 
-							node->regNum = offsetNode->regNum;
-							$$ = node;
+							// store all the info from $1 to offsetNode (hold computed offset information) 
+							offsetNode->type = node->type;
+							offsetNode->name = node->name;
+							offsetNode->isArray = node->isArray;
+							offsetNode->offset = node->offset;
+							offsetNode->dimension = node->dimension;
+
+							int j;
+							for(j=0; j<node->dimension; j++) {
+								offsetNode->dim[j][0] = node->dim[j][0];
+								offsetNode->dim[j][1] = node->dim[j][1];
+							}
+							offsetNode->space = node->space;
+
+							$$ = offsetNode;
 						}
 					}
 				;
 // Exprs    : Expr ',' Exprs 
 Exprs     	: Exprs ',' Expr {
-								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
+								// same method in processing Bounds
+								ExprsRef *node = (ExprsRef*)$1;
 								node -> indices[node->dimension] = $3;
 								node -> dimension++;
 
@@ -700,9 +755,8 @@ Exprs     	: Exprs ',' Expr {
 							}
           	| Expr {
 								ExprsRef *node = (ExprsRef*) malloc(sizeof(ExprsRef)); 
-								node -> dimension = 0;
-								node -> indices[node->dimension] = $1;
-								node -> dimension++;
+								node -> indices[0] = $1;
+								node -> dimension = 1;
 
 								$$ = node;
 			  		}
