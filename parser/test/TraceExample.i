@@ -10,23 +10,24 @@ L1:	 nop
 	 i2i r6 	=> r4 
 	 multI r4, 4 	=> r4 
 	 multI r1, 2 	=> r7 
-	 storeAI r7 	=> r4, 0 
+	 i2i r7 	=> r8 
+	 storeAI r8 	=> r4, 0 
 	 addI r1, 1 	=> r1 
 	 br 	-> L0
 L2:	 nop 
 	 loadI 0 	=> r1 
-	 loadI 9 	=> r8 
+	 loadI 9 	=> r9 
 L3:	 nop 
-	 cmp_LE r1, r8 	=> r9
-	 cbr r9 	-> L4, L5
+	 cmp_LE r1, r9 	=> r10
+	 cbr r10 	-> L4, L5
 L4:	 nop 
-	 subI r1, 0 	=> r12 
-	 loadI 11 	=> r11 
-	 i2i r12 	=> r10 
-	 multI r10, 4 	=> r10 
-	 loadAI r10, 0 	=> r13 
-	 add r0, r13 	=> r14 
-	 i2i r14 	=> r0 
+	 subI r1, 0 	=> r13 
+	 loadI 11 	=> r12 
+	 i2i r13 	=> r11 
+	 multI r11, 4 	=> r11 
+	 loadAI r11, 0 	=> r14 
+	 add r0, r14 	=> r15 
+	 i2i r15 	=> r0 
 	 addI r1, 1 	=> r1 
 	 br 	-> L3
 L5:	 nop 

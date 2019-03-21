@@ -5,7 +5,7 @@ L0:	 nop
 	 cbr r2 	-> L1, L2
 L1:	 nop 
 	 write 	 r0
-	 addI r0, 1 	=> r3 
-	 i2i r3 	=> r0 
+	 addI r0, 1 	=> r4 
+	 i2i r4 	=> r0 
 	 br 	-> L0
 L2:	 nop 

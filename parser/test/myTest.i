@@ -1,0 +1,22 @@
+	 loadI 11 	=> r3 
+	 subI r3, 1 	=> r1 
+	 loadI 20 	=> r2 
+	 i2i r1 	=> r0 
+	 loadI 31 	=> r4 
+	 subI r4, 30 	=> r1 
+	 mult r1, r2 	=> r1 
+	 add r1, r0 	=> r0 
+	 multI r0, 4 	=> r0 
+	 loadI 3 	=> r5 
+	 storeAI r5 	=> r0, 0 
+	 loadI 11 	=> r9 
+	 subI r9, 1 	=> r7 
+	 loadI 20 	=> r8 
+	 i2i r7 	=> r6 
+	 loadI 31 	=> r10 
+	 subI r10, 30 	=> r7 
+	 mult r7, r8 	=> r7 
+	 add r7, r6 	=> r6 
+	 multI r6, 4 	=> r6 
+	 loadAI r6, 0 	=> r11 
+	 write 	 r11

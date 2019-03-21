@@ -33,6 +33,8 @@ L9:	 nop
 	 cbr r9 	-> L12, L13
 L12:	 nop 
 	 write 	 r0
+	 br 	-> L14
+L13:	 nop 
 	 write 	 r1
 	 br 	-> L11
 L10:	 nop 
@@ -47,6 +49,8 @@ L15:	 nop
 	 cbr r12 	-> L18, L19
 L18:	 nop 
 	 write 	 r0
+	 br 	-> L20
+L19:	 nop 
 	 write 	 r1
 	 br 	-> L17
 L16:	 nop 

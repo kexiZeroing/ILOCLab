@@ -14,27 +14,27 @@
 	 cread 	=> r13
 	 cstoreAI r13 	=> r9, 40 
 	 write 	 r0
-	 loadI 3 	=> r17 
-	 subI r17, 0 	=> r16 
-	 loadI 10 	=> r15 
-	 i2i r16 	=> r14 
-	 multI r14, 4 	=> r14 
-	 loadAI r14, 0 	=> r18 
-	 write 	 r18
+	 loadI 3 	=> r18 
+	 subI r18, 0 	=> r17 
+	 loadI 10 	=> r16 
+	 i2i r17 	=> r15 
+	 multI r15, 4 	=> r15 
+	 loadAI r15, 0 	=> r19 
+	 write 	 r19
 	 cwrite 	 r1
-	 loadI 3 	=> r22 
-	 subI r22, 0 	=> r21 
-	 loadI 10 	=> r20 
-	 i2i r21 	=> r19 
-	 cloadAI r19, 40 	=> r23 
-	 cwrite 	 r23
-	 loadI 32 	=> r24 
-	 cwrite 	 r24
-	 loadI 3 	=> r28 
-	 subI r28, 0 	=> r27 
-	 loadI 10 	=> r26 
-	 i2i r27 	=> r25 
-	 multI r25, 4 	=> r25 
-	 loadAI r25, 0 	=> r29 
-	 addI r29, 1 	=> r30 
-	 write 	 r30
+	 loadI 3 	=> r25 
+	 subI r25, 0 	=> r24 
+	 loadI 10 	=> r23 
+	 i2i r24 	=> r22 
+	 cloadAI r22, 40 	=> r26 
+	 cwrite 	 r26
+	 loadI 32 	=> r28 
+	 cwrite 	 r28
+	 loadI 3 	=> r33 
+	 subI r33, 0 	=> r32 
+	 loadI 10 	=> r31 
+	 i2i r32 	=> r30 
+	 multI r30, 4 	=> r30 
+	 loadAI r30, 0 	=> r34 
+	 addI r34, 1 	=> r35 
+	 write 	 r35

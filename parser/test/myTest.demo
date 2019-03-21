@@ -1,0 +1,14 @@
+procedure main {
+  //int a;
+  int b[1:20,30:40];
+  //char c;
+  //int d;
+  //a = 1;
+
+  b[11,31] = 3;
+  write b[11,31];
+  //write c;
+  //write d;
+  //write a[1];
+  //write b[11];
+}
