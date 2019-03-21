@@ -12,22 +12,22 @@ L1:	 nop
 	 write 	 r4
 	 br 	-> L2
 L2:	 nop 
-	 cmp_GT r1, r2 	=> r7
-	 cbr r7 	-> L3, L4
+	 cmp_GT r1, r2 	=> r8
+	 cbr r8 	-> L3, L4
 L3:	 nop 
 	 write 	 r3
 L4:	 nop 
-	 cmp_LE r1, r2 	=> r9
-	 cbr r9 	-> L6, L7
+	 cmp_LE r1, r2 	=> r10
+	 cbr r10 	-> L6, L7
 L6:	 nop 
 	 write 	 r4
 L7:	 nop 
-	 cmp_LT r1, r2 	=> r11
-	 cbr r11 	-> L9, L10
+	 cmp_LT r1, r2 	=> r12
+	 cbr r12 	-> L9, L10
 L9:	 nop 
-	 loadI 0 	=> r12 
-	 cmp_EQ r0, r12 	=> r13
-	 cbr r13 	-> L12, L13
+	 loadI 0 	=> r13 
+	 cmp_EQ r0, r13 	=> r14
+	 cbr r14 	-> L12, L13
 L12:	 nop 
 	 write 	 r3
 	 br 	-> L14
