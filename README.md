@@ -4,8 +4,8 @@ Author: Kexi Dang (kd38)
 # About source code
 - myscanner.l: Specification input file for Flex
 - myparser.y: Specification input file for Bison
-- symbolTable.c: The entry in symbolTable and useful functions in hash table are defined here
-- myiloc.c: All the opcode, iloc emit format and non-terminal's type structure are defined here
+- symbolTable.c: The entry in symbolTable, non-terminal's type structure, and useful functions in hash table are defined here
+- myiloc.c: All the opcode, iloc emit format are defined here
 - main.c: Driver that parses command line arguments and invokes the parser
 - Makefile: List of rules how to (re)compile the source code
 - test/: Including test cases that professor give us on clear '/clear/courses/comp506/students/demo/lab2'
