@@ -1,5 +1,4 @@
-Generating ILOC from DEMO (lab2)
-Author: Kexi Dang (kd38)
+Generating ILOC from DEMO
 
 # About source code
 - myscanner.l: Specification input file for Flex
@@ -8,7 +7,7 @@ Author: Kexi Dang (kd38)
 - myiloc.c: All the opcode, iloc emit format are defined here
 - main.c: Driver that parses command line arguments and invokes the parser
 - Makefile: List of rules how to (re)compile the source code
-- test/: Including test cases that professor give us on clear '/clear/courses/comp506/students/demo/lab2'
+- test/: Including test cases that professor give us on clear
 - test1.demo to test7.demo are my own test cases.
 
 
